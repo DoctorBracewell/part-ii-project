@@ -1,1 +1,2 @@
 {"rule":"OXFORD_SPELLING_Z_NOT_S","sentence":"^\\QIn this project I will consider a continuous space populated by aerodynamically-accurate entities and investigate how a Markov Decision Process (MDP) can be used to model and solve pursuit-evasion problems in this space, introducing more sophisticated visualisations and\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_BEGINNING_RULE","sentence":"^\\QI am confident with the Python programming language, including the plotting library matplotlib and numerical libraries such as numpy and pandas which\\E$"}

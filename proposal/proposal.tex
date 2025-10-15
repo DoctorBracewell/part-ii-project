@@ -32,7 +32,6 @@
   \bf Day-To-Day Supervisor:  & Ramsey Faragher                \\[4mm]
   \bf Marking Supervisor: & Alastair Beresford                   \\[4mm]
   \bf Director of Studies: & Ramsey Faragher                   \\[4mm]
-  \bf Project Checkers:           & ??? and ???
 \end{tabular}
 }
 
@@ -43,44 +42,59 @@
 
 \section{Introduction}
 
-Pursuit-Evasion is a problem domain in which one or more pursuers attempt to capture one or more evaders in some environment. This field has applications and links to game theory, spatial algorithms and airflight kinematics. In this project I will consider a continuous space populated by aerodynamically-accurate entities and investigate how a Markov Decision Process (MDP) can be used to model and solve pursuit-evasion problems in this space.
+Pursuit-Evasion is a problem domain in which one or more pursuers attempt to capture one or more evaders in some environment. This field has applications and links to game theory, spatial algorithms and air flight kinematics. In this project I will consider a three-dimensional continuous space populated by aerodynamically-accurate entities and investigate how a Markov Decision Process (MDP) can be used to model and solve pursuit-evasion problems in this space.
 
-The core of my project will incorporate work from~\cite{BertramWei2021} where I will implement their \texttt{FastMDP} algorithm for efficiently solving pursuit-evasion problems in continuous space using a Markov Decision Process. I will extend this work
-
-I will use python 
+The core of my project will incorporate work from~\cite{BertramWei2021} where I will implement their \texttt{FastMDP} algorithm for efficiently solving pursuit-evasion problems using a Markov Decision Process. I will extend this work by considering how I can improve the visualisation of the simulation, consider additional kinematic and environmental constraints and introduce additional agents to the problem.
 
 \section{Structure of the Project}
 
-The project will be structured as XYZ
+\subsection*{Project Core}
 
-Visualisation
+The project core can be broken down into the following components. For each component I describe the work required and my implementation approach.
 
-Modelling 
+The project will be implemented in Python 3.13.
 
-Markov Decision Processes 
+\subsubsection*{Visualisation}
 
-The project will have the following extensions
+Initially the program's output will be a static image showing the paths taken by the pursuers and evaders by plotting their positions at each timestep. This is sufficient to demonstrate the basic functionality of the simulation. I will use the python library \texttt{matplotlib} to create these plots.
 
-\subsection*{Extension X}
+\subsubsection*{Modelling Agents Kinematically}
 
-X
+Each agent will be modelled using a pseudo-6DoF (degrees of freedom) kinematic model inspired by the formulation in~\cite{BertramWei2021}. Each agent includes parameters:
+\begin{itemize}
+  \item $V$: Airspeed in metres per second
+  \item $(x, y, z)$: Current position
+  \item $\gamma$: Flight path angle in radians
+  \item $\phi$: Roll angle in radians
+  \item $\psi$: Yaw angle in radians
+  \item $\alpha$: Angle of attack in radians
+\end{itemize}
+The inputs to the model will be the thrust $n_x$, the rate of change of $\phi$, and the rate of change of $\alpha$. The equations of motions of the agents can be calculated from these parameters and used for forward projection in the MDP\@.
+\subsubsection*{Markov Decision Process and \texttt{FastMDP} Algorithm}
 
-\subsection*{Extension Y}
+Markov Decision Processes (MDPs) are a mathematical framework for decision-making in situations where outcomes are partly random and partly under the control of an agent. In pursuit-evasion, each agent's position and velocity define the state, possible manoeuvres define the actions, and the environment responds probabilistically. 
+The \texttt{FastMDP} algorithm described in~\cite{BertramWei2021} provides an efficient way to solve pursuit-evasion problems using MDPs using forward projection of the simulation and policy evaluation.
 
-Y
+\subsection*{Extensions}
 
-\subsection*{Extension Z}
-
-Z
-
+I will consider several possible extensions to the project core that explore additional constraints or complexities in the problem space. These include:
+\begin{itemize}
+    \item Introducing terrain and obstacles into the 3D environment.  
+    \item Adding additional agents and investigating collaborative strategies among them.  
+    \item Implementing advanced aerodynamic limitations, such as stalling and maximum turn rates.  
+    \item Creating a dynamic visualisation, outputting a video or interactive 3D model of the simulation at each timestep and representing the agents visually with 3D models.
+\end{itemize}
 
 \newpage
 
 
 \section{Starting Point}
 
-My starting point is XYZ
+I have some experience with using and building Markov models in Python (in particular Markov Chains and Hidden Markov Models) from my Part IA Machine Learning and Real-World Data course, but I have not specifically implemented a Markov Decision Process or the \texttt{FastMDP} algorithm before.
 
+I do not have experience with pursuit-evasion problems or explicit kinematic models, but I have written Python code to simulate physical three-dimensional systems before with a focus on linear algebra and vector mathematics rather than aerodynamics.
+
+I am confident with the Python programming language, including the plotting library \texttt{matplotlib} and numerical libraries such as \texttt{numpy} and \texttt{pandas} which I will use to improve the efficiency of my code.
 
 \section{Evaluation}
 
@@ -89,14 +103,19 @@ My starting point is XYZ
 For the project to be deemed a success, the following must be successfully completed:
 
 \begin{enumerate}
-  \item X
-  \item Y
-  \item Z
+  \item The implemented \texttt{FastMDP} algorithm produces valid pursuer and evader behaviour. 
+  \item The simulation computes agent actions for each timestep within a reasonable time frame, ensuring the algorithm is computationally efficient.
+  \item Any explored extensions, such as additional agents or constraints, produce valid and consistent results.
 \end{enumerate}
 
 \subsection{Evaluation Plan}
 
-It will be evaluted as XYZ
+The evaluation will focus on the following:
+
+\begin{itemize}
+    \item \textbf{Trajectory validity:} Check distances and angles between agents at each timestep to ensure realistic flight paths.
+    \item \textbf{Performance:} Measure CPU time and memory per timestep, and see how this changes with more agents or longer simulations.
+\end{itemize}
 
 
 \newpage 
@@ -104,115 +123,120 @@ It will be evaluted as XYZ
 
 \section{Timetable and Milestones}
 
-\subsection*{Weeks 1 to 2 (17 Oct 22 - 30 Oct 22)}
-Proposal Submitted
+\subsection*{Weeks 1 to 2 (13 Oct 25 - 26 Oct 25)}
+Submit Proposal.
 
-Learn best software development practices in OCaml and research tools available for creating the frontend of a compiler (e.g. lexer and parser tools). 
+Initialise a Git repository for the project and set up a basic python project structure.
 
-Familiarise myself with Go syntax. Begin designing the syntax for Kautuka.
+Install any dependencies or libraries required and familiarise myself with the basic syntax and usage.
 
-Begin writing the Introduction draft in dissertation.
+Continue to research Markov Decision Processes and the \texttt{FastMDP} algorithm and consider how it can be adjusted for my project.
 
-\subsection*{Weeks 3 to 4 (31 Oct 22 - 13 Nov 22)}
+\subsection*{Weeks 3 to 4 (27 Oct 25 - 9 Nov 25)}
 
-Finish designing the syntax for Kautuka. 
+Implement a timestep system to update the positions of the agents in the simulation and create a movement path.
 
-Implement the lexer and parser for the language and write tests to verify that the output abstract syntax trees are correct. Write a compiler to convert the output abstract syntax tree into Go code, which at this point will closely resemble the source code we started with. 
+Connect the timestep system to a basic visualisation using \texttt{matplotlib}, initially testing with pre-defined paths.
 
-Finish writing the Introduction draft in dissertation.
+Milestone: Generate static plots capable of displaying the path of an agent in a 3D environment.
 
-Milestone: Given a Kautuka program, generate the corresponding abstract syntax tree 
+\subsection*{Weeks 5 to 6 (10 Nov 25 - 23 Nov 25)}
 
-\subsection*{Weeks 5 to 6 (14 Nov 22 - 27 Nov 22)}
+Create agent classes to represent the pursuers and evaders with plottable positions.
 
-Design and formalise effect tracking for my language. Then implement this into the compiler to generate lists of effects for all functions in the program. Add more tests to verify that this has been done correctly.
+Begin to consider the reward functions used in the MDP for the pursuers and evaders considering how they will affect movements.
 
-Begin writing the Implementation draft in dissertation (specifically adding my formalised Kautuka syntax and effect tracking inference rules).
+\subsection*{Weeks 7 to 8 (24 Nov 25 - 7 Dec 25)}
 
-Milestone: Given a Kautuka program, determine the list of effects for all of the functions 
+Begin to implement kinematic constraints and calculations for agent positions.
 
-\subsection*{Weeks 7 to 8 (28 Nov 22 - 11 Dec 22)}
-End of Michaelmas Term - start of Christmas holidays.
+Implement the reward functions for the pursuers and evaders based on agent positions and velocities.
 
-Design and formalise my proposed bound-based type system. Then implement this into the compiler. Collect data surrounding the execution time for the standard functions and the overheads involved with creating threads.
+Milestone: Agents capable of independent movement based on kinematic inputs and constraints and path correctly plotted.
 
-Continue writing the Implementation draft in dissertation.
+\subsection*{Weeks 9 to 10 (8 Dec 25 - 21 Dec 25)}
 
-Milestone: Extend Kautuka with my bound-based type system, represent these bounds in the generated abstract syntax tree 
+Finish implementation of kinematic constraints and calculations for agent positions.
 
-\subsection*{Weeks 9 to 11 (12 Dec 22 - 1 Jan 22)}
+Begin implementing the FastMDP algorithm using the kinematic properties of agents, and apply positional updates to the agents at each timestep.
 
-Finish collecting data surrounding execution times and create an algorithm to predict how long functions will take on inputs of different sizes. Using my type system and the collected data, now extend the compiler to estimate the runtime of the user's functions. Finally we can compile functions into different threads if there is sufficient cost benefit.
+\subsection*{Weeks 11 to 12 (22 Dec 25 - 4 Jan 26)}
 
-Start my evaluation.
+Slow implementation progress for Christmas and New Year holidays.
 
-Finish writing the Implementation draft in dissertation.
+Take slack time to ensure all milestones have been met and that the project is on track.
 
-Take time off for Christmas
+\subsection*{Weeks 13 to 14 (5 Jan 26 - 18 Jan 26)}
 
-Milestone: Estimate the runtime of all user defined Kautuka functions. Compile Kautuka to parallelised Go based upon the analysis 
+Continue implementing the FastMDP algorithm.
 
-\subsection*{Weeks 12 to 13 (2 Jan 22 - 15 Jan 22)}
+Start to consider how the MDP or FastMDP algorithm could be adjusted to introduce additional constraints or agents.
 
-Add better type system inference and create further tests to ensure that the program is compiled correctly. 
+Milestone: Kinematic models of agents complete and accurate.
 
-Evaluate the runtime of Kautuka compared to the semantically equivalent, sequential Go code.
+\subsection*{Weeks 15 to 16 (19 Jan 26 - 1 Feb 26)}
 
-Begin writing the Evaluation draft in dissertation.
+Finish implementing FastMDP, ensuring that it uses the correct kinematic inputs and applies the correct positional updates to the agents.
 
-Milestone: Finish core project implementation and pass all success criteria  
+Begin writing Implementation draft in dissertation.
 
-\subsection*{Weeks 14 to 15 (16 Jan 22 - 29 Jan 22)}
-End of Christmas holidays - start of Lent Term.
+Write progress report draft.
 
-Slack time to finish core project implementation.
+\subsection*{Weeks 17 to 18 (2 Feb 26 - 15 Feb 26)}
 
-Make a start on progress report.
+Begin evaluating the project core against the success criteria and tests.
 
-\subsection*{Weeks 16 to 17 (30 Jan 22 - 12 Feb 22)}
+Create progress report presentation.
 
-Finish progress report for the deadline Fri 3 Feb 2023. And create progress report presentation for the deadline Wed 9 Feb 2023.
+Finish writing Implementation draft in dissertation.
 
-Finish writing the Evaluation draft in dissertation.
+Milestone: Submit progress report.
 
-Milestone: Submit progress report 
+\subsection*{Weeks 19 to 20 (16 Feb 26 - 1 Mar 26)}
 
-\subsection*{Weeks 18 to 19 (13 Feb 22 - 26 Feb 22)}
+Take slack time to ensure all milestones have been met and that the project is on track.
 
-Make a start on extensions if time permits. Mainly focus on extensions 1 and 4.
+Begin writing Evaluation draft in dissertation.
 
-Start Conclusion draft in dissertation.
+\subsection*{Weeks 21 to 22 (2 Mar 26 - 15 Mar 26)}
 
-\subsection*{Weeks 20 to 21 (27 Feb 22 - 12 Mar 22)}
+Finish writing Evaluation draft in dissertation.
 
-Continue with extensions if time permits. Now focus on the remaining extensions.
+Begin exploring extensions, focussing on introducing additional constraints to the simulation and decision process.
 
-Finish Conclusion draft in dissertation.
+Milestone: Implementation and Evaluation drafts complete.
 
-Milestone: Finish dissertation draft
+\subsection*{Weeks 23 to 24 (16 Mar 26 - 29 Mar 26)}
 
-\subsection*{Weeks 22 to 23 (13 Mar 22 - 26 Mar 22)}
+Continue exploring extensions, focussing on introducing additional agents to the simulation and promoting collaborative strategies.
 
-Slack time to finish the dissertation draft.
+Write Introduction draft in dissertation.
 
-\subsection*{Weeks 24 to 25 (27 Mar 22 - 9 Apr 22)}
+\subsection*{Weeks 25 to 26 (30 Mar 26 - 12 Apr 26)}
 
-Submit draft of the dissertation to my supervisor and DoS for review by the deadline Fri 7 Apr 2023. Begin exam revision and review code repository in the meantime (ensure that my code is clear, readable and well structured).
+Finish exploring extensions, and extend Implementation and Evaluation sections in dissertation to discuss explored extensions.
 
-Make improvements to the dissertation based upon this feedback.
+Write Conclusion draft in dissertation.
 
-\subsection*{Weeks 26 to 27 (10 Apr 22 - 23 Apr 22)}
+Milestone: Have a final code repository with the project core implementation and explored extensions complete.
 
-Finish improvements to the dissertation and submit to my supervisor a second time for final review. 
+\subsection*{Weeks 27 to 28 (13 Apr 26 - 26 Apr 26)}
 
-Make last adjustments and focus on making the dissertation presentable and easy to read. 
+Combine written dissertation sections into a first full draft, ensuring correct formatting and presentation.
 
-\subsection*{Weeks 28 - 29 (24 Apr 22 - 7 May 22)}
+Submit draft to supervisors for feedback and make improvements.
 
-Slack time for any extra additional evaluation and tests that may be discovered during final reviews of my dissertation, and start revision for exams.
+\subsection*{Weeks 29 - 30 (27 Apr 26 - 10 May 26)}
 
-Milestone (28 April 22): Submit Dissertation (2 weeks in advance of final deadline)
+Continue to submit dissertation drafts to supervisors for feedback and make improvements.
 
+Ensure that the codebase and the dissertation document are presentable and ready for submission.
+
+\subsection*{Week 31 (11 May 26 - 15 May 26)}
+
+Submit final dissertation within deadline.
+
+Milestone: Dissertation and code submitted.
 
 \section{Resource Declaration}
 
