@@ -1,0 +1,15 @@
+# AI Helper Development Rules for 'understanding-quantum-architecture-project'
+
+## General Guidelines:
+- **Command Execution Directory**: Always execute commands from within the `project/` folder. Ensure to `cd project/` before running any commands.
+- **Virtual Environment**: Always use the `.venv` virtual environment. Source it before development: `source .venv/bin/activate`.
+- **Logging**: Utilize `rich` logging for all output to maintain a clean and consistent debug and production experience.
+- **Minimal Requests**: When performing tasks, use minimal tool requests. For file changes, consolidate all modifications into a single `replace_in_file` or `write_to_file` call.
+- **Code Changes**:
+    - Keep code changes as simple and minimal as possible, directly addressing the prompt.
+    - Avoid excessive code; respond with the most efficient change. Further elaborations or features will be requested in additional prompts.
+    - Focus on minimal line count and simplicity while ensuring readability and maintainability.
+    - Create simple abstractions with deep functionality, avoiding excessive features or complexity.
+
+## Project Overview:
+This project is a simulation-based Python application designed to run calculations, return data, and generate plots. It supports multiple agents with custom functionality, manages global state and properties, and includes involved plot generation capabilities.
