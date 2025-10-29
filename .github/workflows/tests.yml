@@ -31,5 +31,5 @@ jobs:
       with:
         name: test-results
         path: |
-          report.xml
-          coverage.xml
+          project/report.xml
+          project/coverage.xml
