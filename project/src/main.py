@@ -1,16 +1,21 @@
 import logging
-from rich.logging import RichHandler
 
+from rich.logging import RichHandler
+from rich.console import Console
+
+from display import Display
 from simulation import Simulation
 from plotter import Plotter
 
-# Configure logging with RichHandler
+console = Console()
+
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
     datefmt="[%X]",
     handlers=[
         RichHandler(
+            console=console,
             show_time=True,
             show_level=True,
             show_path=True,
@@ -19,15 +24,13 @@ logging.basicConfig(
     ],
 )
 
-# Create a logger instance
 logger = logging.getLogger("rich")
 
 
 def main():
-    logger.info("logging enabled")
-
-    simulation = Simulation(logger)
-    simulation.run()
+    with Display(console) as display:
+        simulation = Simulation(logger)
+        simulation.run(display.update)
 
     plotter = Plotter()
     plotter.plot()
