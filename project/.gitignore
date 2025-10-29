@@ -1,0 +1,15 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# IDE-specific files
+.vscode/
+
+# Virtual environment
+.venv/
+
+# Test
+.pytest_cache/
+.coverage
+coverage.xml
+report.xml
