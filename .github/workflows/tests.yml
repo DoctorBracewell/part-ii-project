@@ -27,7 +27,7 @@ jobs:
       run: |
         pytest --cov=src --cov-report=xml --junitxml=report.xml
     - name: Upload Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v5
       with:
         name: test-results
         path: |
