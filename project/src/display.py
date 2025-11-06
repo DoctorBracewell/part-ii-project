@@ -5,7 +5,7 @@ from rich.console import Console, Group
 
 from typing import Type
 from types import TracebackType
-from simulation import SimulationStatus
+from simulation.simulation import SimulationStatus
 
 
 class Display:
@@ -52,7 +52,9 @@ class Display:
 
     def make_values(self, status: SimulationStatus) -> Panel:
         return Panel(
-            self.console.render_str(f"Timestep: {status.timestep}"),
+            self.console.render_str(
+                f"Timestep: {status.timestep}\nAgents: {status.agents}\nHard Deck: {status.hard_deck}"
+            ),
             title="[bold]Simulation Status[/bold]",
             title_align="left",
         )

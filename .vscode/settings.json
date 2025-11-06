@@ -1,5 +1,8 @@
 {
 	"python.defaultInterpreterPath": "${workspaceFolder}/project/.venv/bin/python",
 	"python.terminal.activateEnvironment": true,
+	"python.analysis.diagnosticSeverityOverrides": {
+		"reportUnknownMemberType": "none"
+	},
 	"python.analysis.extraPaths": ["./project/src"]
 }
