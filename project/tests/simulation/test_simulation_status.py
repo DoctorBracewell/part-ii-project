@@ -1,4 +1,4 @@
-from simulation.agents import Agent
+from simulation.agent import Agent
 from simulation.simulation import SimulationStatus
 from config import SimulationConfig
 

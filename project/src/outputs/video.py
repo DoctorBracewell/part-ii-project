@@ -6,6 +6,7 @@ from config import VideoConfig, SimulationConfig, OutputConfig
 from outputs.base import OutputManager, BaseOutput
 import os
 import numpy as np
+from datetime import datetime
 
 
 class VideoOutput(BaseOutput):
@@ -78,9 +79,8 @@ class VideoOutput(BaseOutput):
     def save(self):
         os.makedirs(VideoConfig.OUTPUT_DIRECTORY, exist_ok=True)
 
-        filepath = os.path.join(
-            VideoConfig.OUTPUT_DIRECTORY, VideoConfig.OUTPUT_FILENAME
-        )
+        filename = f"{VideoConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d')}.{VideoConfig.OUTPUT_EXTENSION}"
+        filepath = os.path.join(VideoConfig.OUTPUT_DIRECTORY, filename)
 
         ani = animation.FuncAnimation(
             self.fig,

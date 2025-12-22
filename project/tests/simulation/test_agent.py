@@ -1,4 +1,4 @@
-from simulation.agents import Agent
+from simulation.agent import Agent
 
 
 def test_agent_initialization():

@@ -1,5 +1,5 @@
 import pytest
-from simulation.agents import Agent
+from simulation.agent import Agent
 from simulation.simulation import Simulation, SimulationStatus
 from config import SimulationConfig
 from unittest.mock import Mock

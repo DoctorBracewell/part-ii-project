@@ -4,6 +4,7 @@ from config import PlotConfig, OutputConfig
 from outputs.base import OutputManager, BaseOutput
 from typing import Any
 import os
+from datetime import datetime
 
 
 class PlotOutput(BaseOutput):
@@ -133,7 +134,11 @@ class PlotOutput(BaseOutput):
     def save(self):
         os.makedirs(PlotConfig.OUTPUT_DIRECTORY, exist_ok=True)
 
-        filepath = os.path.join(PlotConfig.OUTPUT_DIRECTORY, PlotConfig.OUTPUT_FILENAME)
+        filename = f"{PlotConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d')}.{PlotConfig.OUTPUT_EXTENSION}"
+        filepath = os.path.join(
+            PlotConfig.OUTPUT_DIRECTORY,
+            filename,
+        )
 
         self.fig.savefig(filepath, dpi=OutputConfig.DPI)
         self.logger.info(f"Plot saved to {filepath}")

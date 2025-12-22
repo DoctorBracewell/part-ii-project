@@ -1,3 +1,5 @@
 pytest
 pytest-coverage
 rich
+psutil
+asciichartpy
