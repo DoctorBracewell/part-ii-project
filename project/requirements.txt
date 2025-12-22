@@ -5,3 +5,4 @@ psutil
 asciichartpy
 numpy
 plotext
+matplotlib
