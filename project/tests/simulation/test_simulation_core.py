@@ -1,8 +1,6 @@
-import pytest
-from simulation.agent import Agent
 from simulation.simulation import Simulation, SimulationStatus
-from config import SimulationConfig
-from unittest.mock import Mock
+from simulation.agent import Agent
+from unittest.mock import Mock, patch, MagicMock
 
 
 def test_simulation_initialization():
@@ -10,71 +8,46 @@ def test_simulation_initialization():
     simulation = Simulation(logger=mock_logger)
 
     assert simulation.logger == mock_logger
-    assert isinstance(simulation.pursuer, Agent)
-    assert isinstance(simulation.evader, Agent)
     assert isinstance(simulation.status, SimulationStatus)
-
-    assert simulation.pursuer.position == 0.0
-    assert simulation.evader.position == 5.0
-    assert simulation.status.pursuer == simulation.pursuer
-    assert simulation.status.evader == simulation.evader
+    assert isinstance(simulation.status.pursuer, Agent)
+    assert isinstance(simulation.status.evader, Agent)
+    assert simulation.mdp is not None
 
 
-def test_simulation_run_timestep_increment():
+def test_simulation_step():
     mock_logger = Mock()
     simulation = Simulation(logger=mock_logger)
 
     initial_timestep = simulation.status.timestep
-    simulation.run()
+    initial_pursuer_state = simulation.status.pursuer.get_state()
+    initial_evader_state = simulation.status.evader.get_state()
 
-    expected_timesteps = 10 * SimulationConfig.STEPS_PER_SECOND
-    assert simulation.status.timestep == initial_timestep + expected_timesteps
+    simulation.step()
 
-
-def test_simulation_run_agent_movement():
-    mock_logger = Mock()
-    simulation = Simulation(logger=mock_logger)
-
-    initial_pursuer_pos = simulation.pursuer.position
-    initial_evader_pos = simulation.evader.position
-
-    simulation.run()
-
-    # Pursuer: initial_velocity = -1, acceleration = 0.1
-    # Evader: initial_velocity = 0, acceleration = 0
-    # Total time = 10 seconds (10 * STEPS_PER_SECOND * (1/STEPS_PER_SECOND))
-    total_time = 10.0
-
-    # Expected pursuer movement:
-    # position = initial_pos + (initial_vel * time) + (0.5 * acc * time^2)
-    expected_pursuer_pos = (
-        initial_pursuer_pos + (-1 * total_time) + (0.5 * 0.1 * total_time**2)
-    )
-    # velocity = initial_vel + (acc * time)
-    expected_pursuer_vel = -1 + (0.1 * total_time)
-
-    # Expected evader movement:
-    # position = initial_pos + (initial_vel * time) + (0.5 * acc * time^2)
-    expected_evader_pos = (
-        initial_evader_pos + (0 * total_time) + (0.5 * 0 * total_time**2)
-    )
-    # velocity = initial_vel + (acc * time)
-    expected_evader_vel = 0 + (0 * total_time)
-
-    assert simulation.pursuer.position == pytest.approx(expected_pursuer_pos)
-    assert simulation.pursuer.velocity == pytest.approx(expected_pursuer_vel)
-    assert simulation.evader.position == pytest.approx(expected_evader_pos)
-    assert simulation.evader.velocity == pytest.approx(expected_evader_vel)
+    assert simulation.status.timestep == initial_timestep + 1
+    assert simulation.status.pursuer.get_state() != initial_pursuer_state
+    assert simulation.status.evader.get_state() != initial_evader_state
 
 
-def test_simulation_run_callback_execution():
+@patch("simulation.simulation.Simulation.step")
+def test_simulation_run(mock_step: MagicMock):
     mock_logger = Mock()
     simulation = Simulation(logger=mock_logger)
     mock_callback = Mock()
 
-    simulation.run(mock_callback)
+    # To prevent an infinite loop, we need to stop the simulation after a few steps.
+    # We can do this by raising an exception in the mock_step function after a few calls.
+    def side_effect():
+        if mock_step.call_count > 5:
+            raise StopIteration
 
-    expected_calls = 10 * SimulationConfig.STEPS_PER_SECOND
-    assert mock_callback.call_count == expected_calls
-    # Verify that the callback was called with a SimulationStatus object
+    mock_step.side_effect = side_effect
+
+    try:
+        simulation.run(mock_callback)
+    except StopIteration:
+        pass
+
+    assert mock_step.call_count > 1
+    assert mock_callback.call_count > 1
     mock_callback.assert_called_with(simulation.status)
