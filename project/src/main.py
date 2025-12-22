@@ -32,10 +32,13 @@ def main():
         output_manager = OutputManager(logger)
         simulation = Simulation(logger)
 
-        # Run the simulation with display and output_manager callbacks
-        simulation.run(display.update, output_manager.add_agent_positions)
-
-        output_manager.create_outputs()
+        # Run the simulation until termination, always creating outputs after completion
+        try:
+            simulation.run(display.update, output_manager.add_agent_positions)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            output_manager.create_outputs()
 
 
 if __name__ == "__main__":
