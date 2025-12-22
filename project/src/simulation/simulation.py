@@ -6,8 +6,9 @@ from simulation.agent import Agent, Action
 from simulation.mdp import MDP
 
 type SimulationStatusState = tuple[
-    int, int, int, tuple[float, float, float], tuple[float, float, float]
+    int, int, int, tuple[int, float, float, float], tuple[int, float, float, float]
 ]
+"""(timestep, agent_count, hard_deck, pursuer_state, evader_state)"""
 
 
 class SimulationStatus:
@@ -60,7 +61,6 @@ class Simulation:
         self.logger = logger
 
         self.status = SimulationStatus()
-        self.mdp = MDP(self.logger, self.status.pursuer, self.status.evader)
 
     def run(self, *callbacks: Callable[[SimulationStatus], None]):
         self.logger.info("simulation started")
@@ -72,15 +72,29 @@ class Simulation:
                 callback(self.status)
 
     def step(self):
-        # determine actions
+        # determine and set action for each agent
+        for agent in [self.status.pursuer, self.status.evader]:
+            mdp = MDP(self.logger, agent, self.status)
+            # action = mdp.find_action()
 
+        # step each agent with that action
         self.status.pursuer.step()
         self.status.evader.step()
 
+        # increase timestep
         self.status.timestep += 1
 
     def forward_project(self, agent: Agent, action: Action, time: float):
         steps = int(time * SimulationConfig.STEPS_PER_SECOND)
-        state = self.status.get_state()
+        initial_state = self.status.get_state()
 
-        # todo: implement forward projection
+        agent.update_from_action(action)
+
+        for _ in range(steps):
+            self.status.pursuer.step()
+            self.status.evader.step()
+
+        # return final state reached and reset
+        final_state = self.status.get_state()
+        self.status.set_state(initial_state)
+        return final_state

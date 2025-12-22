@@ -11,7 +11,6 @@ def test_simulation_initialization():
     assert isinstance(simulation.status, SimulationStatus)
     assert isinstance(simulation.status.pursuer, Agent)
     assert isinstance(simulation.status.evader, Agent)
-    assert simulation.mdp is not None
 
 
 def test_simulation_step():

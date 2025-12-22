@@ -1,9 +1,4 @@
 from config import SimulationConfig
-from numpy.typing import NDArray
-import numpy as np
-
-type State = NDArray[(np.float64, np.float64, np.float64)]
-"""[pursuer_pos, evader_pos, evader_vel]"""
 
 type Action = tuple[float]
 """(thrust: float)"""
@@ -13,6 +8,7 @@ actions: list[Action] = [(thrust,) for thrust in thrusts]
 
 
 class Agent:
+    _id: int = 0
     position: float
     velocity: float
     acceleration: float
@@ -20,6 +16,10 @@ class Agent:
     def __init__(
         self, position: float = 0, velocity: float = 0, acceleration: float = 0
     ):
+        # auto-increment ID
+        type(self)._id += 1
+        self.id = type(self)._id
+
         self.position = position  # metres
         self.velocity = velocity  # metres/second
         self.acceleration = acceleration  # metres/second^2
