@@ -39,7 +39,7 @@ def test_simulation_run(mock_run: MagicMock):
     # We can do this by raising an exception in the mock_step function after a few calls.
     def side_effect(*args, **kwargs):
         # The callback is the first argument of the run method
-        callback = args[0][0]
+        callback = args[0]
         for i in range(6):
             callback(manager.simulation)
         raise StopIteration

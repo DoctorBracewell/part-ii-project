@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch, MagicMock
 from outputs.base import OutputManager
-from simulation.simulation import SimulationStatus
+from simulation.mdp import Simulation
+from simulation.agent import Agent
 
 
 @patch("outputs.plot.PlotOutput")
@@ -19,10 +20,12 @@ def test_output_manager_initialization(
 def test_add_agent_positions(mock_video_output: MagicMock, mock_plot_output: MagicMock):
     mock_logger = Mock()
     manager = OutputManager(logger=mock_logger)
-    status = SimulationStatus()
-    status.pursuer.position = 10.0
-    status.evader.position = 20.0
-    manager.add_agent_positions(status)
+    pursuer = Agent(0)
+    evader = Agent(1)
+    simulation = Simulation(pursuer, evader)
+    simulation.pursuer.position = 10.0
+    simulation.evader.position = 20.0
+    manager.add_agent_positions(simulation)
     assert manager.agent_paths[0] == [10.0]
     assert manager.agent_paths[1] == [20.0]
 
