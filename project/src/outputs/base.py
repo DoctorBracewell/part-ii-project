@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from logging import Logger
-from simulation.simulation import SimulationStatus
+from simulation.simulation import Simulation
 from abc import ABC, abstractmethod
-from config import OutputConfig
-from typing import Any
+from configs import output as OutputConfig
 
 
 class OutputManager:
@@ -20,7 +19,7 @@ class OutputManager:
         ]
 
     # Called by simulation by callback after each step
-    def add_agent_positions(self, status: SimulationStatus):
+    def add_agent_positions(self, status: Simulation):
         self.add_point(0, status.pursuer.position)
         self.add_point(1, status.evader.position)
 

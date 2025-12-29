@@ -6,3 +6,4 @@ asciichartpy
 numpy
 plotext
 matplotlib
+numba

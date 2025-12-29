@@ -4,7 +4,8 @@ from rich.logging import RichHandler
 from rich.console import Console
 
 from display import Display
-from simulation.simulation import Simulation
+from simulation.simulation import SimulationManager
+
 from outputs.base import OutputManager
 
 console = Console()
@@ -30,7 +31,7 @@ logger = logging.getLogger("rich")
 def main():
     with Display(console) as display:
         output_manager = OutputManager(logger)
-        simulation = Simulation(logger)
+        simulation = SimulationManager(logger)
 
         # Run the simulation until termination, always creating outputs after completion
         try:

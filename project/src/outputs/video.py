@@ -2,7 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.lines import Line2D  # Import Line2D
 from logging import Logger
-from config import VideoConfig, SimulationConfig, OutputConfig
+
+from configs import output as OutputConfig
+from configs import simulation as SimulationConfig
+from configs.outputs import video as VideoConfig
+
 from outputs.base import OutputManager, BaseOutput
 import os
 import numpy as np
@@ -77,10 +81,10 @@ class VideoOutput(BaseOutput):
         return updated_circles
 
     def save(self):
-        os.makedirs(VideoConfig.OUTPUT_DIRECTORY, exist_ok=True)
+        os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
 
         filename = f"{VideoConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d')}.{VideoConfig.OUTPUT_EXTENSION}"
-        filepath = os.path.join(VideoConfig.OUTPUT_DIRECTORY, filename)
+        filepath = os.path.join(OutputConfig.OUTPUT_DIRECTORY, filename)
 
         ani = animation.FuncAnimation(
             self.fig,

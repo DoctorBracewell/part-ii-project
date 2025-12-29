@@ -1,6 +1,7 @@
 from matplotlib.lines import Line2D  # Import Line2D
 from logging import Logger
-from config import PlotConfig, OutputConfig
+from configs import output as OutputConfig
+from configs.outputs import plot as PlotConfig
 from outputs.base import OutputManager, BaseOutput
 from typing import Any
 import os
@@ -132,11 +133,11 @@ class PlotOutput(BaseOutput):
         self.ax.legend(handles=current_handles, labels=current_labels)
 
     def save(self):
-        os.makedirs(PlotConfig.OUTPUT_DIRECTORY, exist_ok=True)
+        os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
 
         filename = f"{PlotConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d')}.{PlotConfig.OUTPUT_EXTENSION}"
         filepath = os.path.join(
-            PlotConfig.OUTPUT_DIRECTORY,
+            OutputConfig.OUTPUT_DIRECTORY,
             filename,
         )
 

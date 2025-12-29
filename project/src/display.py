@@ -13,13 +13,14 @@ from datetime import datetime
 
 from typing import Type
 from types import TracebackType
-from simulation.simulation import SimulationStatus
-from config import SimulationConfig
+from simulation.simulation import Simulation
+from configs import simulation as SimulationConfig
 
 
 class Display:
     def __init__(self, console: Console):
         self.charts_updated_at = 0
+        self.start_time = datetime.now().timestamp()
         self.system_metrics = SystemMetrics()
         self.cpu_chart = Chart(colour="red")
         self.mem_chart = Chart(colour="blue")
@@ -60,7 +61,7 @@ class Display:
         self.live.update(Group())
         self.live.stop()
 
-    def update(self, status: SimulationStatus):
+    def update(self, status: Simulation):
         self.values.update(self.make_values(status))
 
         if datetime.now().timestamp() - self.charts_updated_at > 1:
@@ -70,10 +71,16 @@ class Display:
 
         self.live.refresh()
 
-    def make_values(self, status: SimulationStatus) -> Panel:
+    def make_values(self, status: Simulation) -> Panel:
+        timestep = status.timestep
+        simulation_time = timestep / SimulationConfig.STEPS_PER_SECOND
+        real_time = round(datetime.now().timestamp() - self.start_time, 3)
+        agent_count = status.agent_count
+        hard_deck = status.hard_deck
+
         return Panel(
             self.console.render_str(
-                f"Timestep: {status.timestep}\nRealtime: {status.timestep / SimulationConfig.STEPS_PER_SECOND}s\nAgents: {status.agent_count}\nHard Deck: {status.hard_deck}"
+                f"Timestep: {timestep}\nSimulation Time: {simulation_time}s\nReal Time: {real_time}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}"
             ),
             title="[bold]Simulation Status[/bold]",
             title_align="left",
