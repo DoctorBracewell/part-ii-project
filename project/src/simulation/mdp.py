@@ -1,33 +1,19 @@
 from __future__ import annotations
-
+from typing import Callable
 import numpy as np
 from numpy.typing import NDArray
 
 from configs import mdp as MDPConfig
-from simulation.agent import Agent, actions
-
-from typing import TYPE_CHECKING, Callable
-
-from numba import float64, njit
-from numba.typed import List
-from numba.types import ListType
-from numba.experimental import jitclass
-
 from configs import simulation as SimulationConfig
-from simulation.agent import Agent, Action, AgentState
 
-# if TYPE_CHECKING:
-#     from simulation.simulation import Simulation, SimulationState
-
+from simulation.agent import Position, Agent, Action, AgentState, actions
 
 # Reward parameters
 positive_magnitudes: NDArray[np.float64] = np.array([200])
 positive_discounts: NDArray[np.float64] = np.array([0.999])
-
-
-@njit
-def positive_positions(p: float, _: float) -> NDArray[np.float64]:
-    return np.array([p])
+positive_positions: Callable[[float, float], NDArray[np.float64]] = (
+    lambda p, _: np.array([p])
+)
 
 
 timesteps = [0, 1, 5, 10]
@@ -41,7 +27,6 @@ negative_radii: Callable[[float, float], NDArray[np.float64]] = lambda _, v: np.
 )
 
 
-@jitclass
 class Simulation:
     agent_id_counter: int
     timestep: int
@@ -63,13 +48,13 @@ class Simulation:
 
     def step(self):
         # determine and set action for each agent
-        agents: ListType[Agent] = List()
-        agents.append(self.pursuer)
-        agents.append(self.evader)
-
-        for agent in agents:
+        for agent in [self.pursuer, self.evader]:
             mdp = MDP(self, agent)
-            # action = mdp.find_action()
+            action = mdp.find_action()
+            agent.next_action = action
+
+        for agent in [self.pursuer, self.evader]:
+            agent.update_from_next_action()
 
         # step each agent with that action
         self.pursuer.step()
@@ -119,7 +104,6 @@ class Simulation:
 
 
 # The MDP
-@jitclass(spec=[("other_agents", float64[:, :])])  # type: ignore
 class MDP:
     agent: Agent
     simulation: Simulation
@@ -128,7 +112,7 @@ class MDP:
     self_agent_id: int
     self_agent_pos: float
     self_agent_vel: float
-    other_agents: NDArray[np.float64]
+    other_agents: list[tuple[Position, float]]
 
     def __init__(self, simulation: Simulation, agent: Agent):
         self.simulation = simulation
@@ -147,15 +131,11 @@ class MDP:
         # Update internal state
         self.self_agent_pos = agent[1]
         self.self_agent_vel = agent[2]
-        # nopython-safe method of allocating 2D array
-        n = 1  # number of other agents
-        self.other_agents = np.empty((n, 2), dtype=np.float64)
-        self.other_agents[0, 0] = other_agent[1]
-        self.other_agents[0, 1] = other_agent[2]
+        self.other_agents = [(other_agent[1], other_agent[2])]
 
     def find_action(self):
         best_action = None
-        best_result = -float("inf")
+        best_reward = -float("inf")
 
         for action in actions:
             # forward project
@@ -167,32 +147,57 @@ class MDP:
 
             self.set_state_from_simulation_state(horizon)
 
-        # rewards
-        # best_positive_reward = self.positive_maximum()
-        # return np.array([best_positive_reward])
+            # rewards
+            best_positive_reward = self.positive_maximum()
+            best_negative_reward = self.negative_maximum()
+            hard_deck_penalty = self.hard_deck_penalty()
 
-        # best_negative_reward = self.negative_maximum()
+            total_reward = (
+                best_positive_reward - best_negative_reward - hard_deck_penalty
+            )
 
-    # def positive_maximum(self):
-    #     best_value = -float("inf")
+            if total_reward > best_reward:
+                best_reward = total_reward
+                best_action = action
 
-    #     for p, v in self.other_agents:
-    #         # numpy arrays for vectorised computation
-    #         positions = positive_positions(p, v)
-    #         distances = np.abs(positions - self.self_agent_pos)
-    #         values = positive_magnitudes * (positive_discounts**distances)
-    #         max_value = np.max(values)
+        return best_action
 
-    #         if max_value > best_value:
-    #             best_value = max_value
+    def positive_maximum(self):
+        best_value = -np.inf
 
-    #     return best_value
+        for p, v in self.other_agents:
+            # numpy arrays for vectorised computation
+            positions = positive_positions(p, v)
+            distances = np.abs(positions - self.self_agent_pos)
+            values = positive_magnitudes * (positive_discounts**distances)
+            max_value = np.max(values)
 
-    # def negative_maximum(self):
-    #     best_value = -float("inf")
+            if max_value > best_value:
+                best_value = max_value
 
-    #     for p, v in self.other_agents:
-    #         # numpy arrays for vectorised computation
+        return best_value
+
+    def negative_maximum(self):
+        best_value = -np.inf
+
+        for p, v in self.other_agents:
+            # numpy arrays for vectorised computation
+            positions = negative_positions(p, v)
+            radii = negative_radii(p, v)
+            distances = np.abs(positions - self.self_agent_pos)
+            within_radius = distances <= radii
+            values = (
+                within_radius * negative_magnitudes * (negative_discounts**distances)
+            )
+            max_value = np.max(values)
+
+            if max_value > best_value:
+                best_value = max_value
+
+        return best_value
+
+    def hard_deck_penalty(self):
+        return 0.0
 
 
 type SimulationState = tuple[int, int, int, AgentState, AgentState]
