@@ -1,18 +1,18 @@
 import pytest
 import random
 from simulation.agent import Agent, actions
-from config import SimulationConfig
+from configs import simulation as SimulationConfig
 
 
 def test_agent_initialization():
-    agent = Agent(position=10.0, velocity=1.0, acceleration=2.0)
+    agent = Agent(id=0, position=10.0, velocity=1.0, acceleration=2.0)
     assert agent.position == 10.0
     assert agent.velocity == 1.0
     assert agent.acceleration == 2.0
 
 
 def test_agent_update_from_action():
-    agent = Agent()
+    agent = Agent(id=0)
     initial_acceleration = agent.acceleration
     agent.update_from_action(actions[1])  # Assuming actions[1] has a thrust value
     assert (
@@ -22,7 +22,7 @@ def test_agent_update_from_action():
 
 
 def test_agent_step():
-    agent = Agent(position=0.0, velocity=1.0, acceleration=2.0)
+    agent = Agent(id=0, position=0.0, velocity=1.0, acceleration=2.0)
     time_step = 1 / SimulationConfig.STEPS_PER_SECOND
 
     initial_position = agent.position
@@ -42,7 +42,7 @@ def test_agent_step():
 
 
 def test_agent_randomise():
-    agent = Agent()
+    agent = Agent(id=0)
     initial_position = agent.position
     initial_velocity = agent.velocity
 
@@ -61,11 +61,11 @@ def test_agent_randomise():
 
 
 def test_agent_get_set_state():
-    agent = Agent(position=10.0, velocity=5.0, acceleration=2.0)
+    agent = Agent(id=0, position=10.0, velocity=5.0, acceleration=2.0)
     state = agent.get_state()
-    assert state == (10.0, 5.0, 2.0)
+    assert state == (0, 10.0, 5.0, 2.0)
 
-    new_state = (20.0, 10.0, 3.0)
+    new_state = (0, 20.0, 10.0, 3.0)
     agent.set_state(new_state)
     assert agent.position == 20.0
     assert agent.velocity == 10.0

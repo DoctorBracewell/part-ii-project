@@ -1,52 +1,56 @@
-from simulation.simulation import Simulation, SimulationStatus
+from simulation.simulation import SimulationManager
+from simulation.mdp import Simulation
 from simulation.agent import Agent
 from unittest.mock import Mock, patch, MagicMock
 
 
 def test_simulation_initialization():
     mock_logger = Mock()
-    simulation = Simulation(logger=mock_logger)
+    manager = SimulationManager(logger=mock_logger)
 
-    assert simulation.logger == mock_logger
-    assert isinstance(simulation.status, SimulationStatus)
-    assert isinstance(simulation.status.pursuer, Agent)
-    assert isinstance(simulation.status.evader, Agent)
+    assert manager.logger == mock_logger
+    assert isinstance(manager.simulation, Simulation)
+    assert isinstance(manager.simulation.pursuer, Agent)
+    assert isinstance(manager.simulation.evader, Agent)
 
 
 def test_simulation_step():
     mock_logger = Mock()
-    simulation = Simulation(logger=mock_logger)
+    manager = SimulationManager(logger=mock_logger)
 
-    initial_timestep = simulation.status.timestep
-    initial_pursuer_state = simulation.status.pursuer.get_state()
-    initial_evader_state = simulation.status.evader.get_state()
+    initial_timestep = manager.simulation.timestep
+    initial_pursuer_state = manager.simulation.pursuer.get_state()
+    initial_evader_state = manager.simulation.evader.get_state()
 
-    simulation.step()
+    manager.simulation.step()
 
-    assert simulation.status.timestep == initial_timestep + 1
-    assert simulation.status.pursuer.get_state() != initial_pursuer_state
-    assert simulation.status.evader.get_state() != initial_evader_state
+    assert manager.simulation.timestep == initial_timestep + 1
+    assert manager.simulation.pursuer.get_state() != initial_pursuer_state
+    assert manager.simulation.evader.get_state() != initial_evader_state
 
 
-@patch("simulation.simulation.Simulation.step")
-def test_simulation_run(mock_step: MagicMock):
+@patch("simulation.simulation.SimulationManager.run")
+def test_simulation_run(mock_run: MagicMock):
     mock_logger = Mock()
-    simulation = Simulation(logger=mock_logger)
+    manager = SimulationManager(logger=mock_logger)
     mock_callback = Mock()
 
     # To prevent an infinite loop, we need to stop the simulation after a few steps.
     # We can do this by raising an exception in the mock_step function after a few calls.
-    def side_effect():
-        if mock_step.call_count > 5:
-            raise StopIteration
+    def side_effect(*args, **kwargs):
+        # The callback is the first argument of the run method
+        callback = args[0][0]
+        for i in range(6):
+            callback(manager.simulation)
+        raise StopIteration
 
-    mock_step.side_effect = side_effect
+    mock_run.side_effect = side_effect
 
     try:
-        simulation.run(mock_callback)
+        manager.run(mock_callback)
     except StopIteration:
         pass
 
-    assert mock_step.call_count > 1
-    assert mock_callback.call_count > 1
-    mock_callback.assert_called_with(simulation.status)
+    assert mock_run.call_count == 1
+    assert mock_callback.call_count == 6
+    mock_callback.assert_called_with(manager.simulation)
