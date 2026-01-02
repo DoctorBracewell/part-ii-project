@@ -61,8 +61,8 @@ class Display:
         self.live.update(Group())
         self.live.stop()
 
-    def update(self, status: Simulation):
-        self.values.update(self.make_values(status))
+    def update(self, simulation: Simulation):
+        self.values.update(self.make_values(simulation))
 
         if datetime.now().timestamp() - self.charts_updated_at > 1:
             self.charts_updated_at = datetime.now().timestamp()
@@ -71,12 +71,12 @@ class Display:
 
         self.live.refresh()
 
-    def make_values(self, status: Simulation) -> Panel:
-        timestep = status.timestep
+    def make_values(self, simulation: Simulation) -> Panel:
+        timestep = simulation.timestep
         simulation_time = timestep / SimulationConfig.STEPS_PER_SECOND
         real_time = round(datetime.now().timestamp() - self.start_time, 3)
-        agent_count = status.agent_count
-        hard_deck = status.hard_deck
+        agent_count = simulation.N
+        hard_deck = SimulationConfig.HARD_DECK
 
         return Panel(
             self.console.render_str(

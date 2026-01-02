@@ -3,7 +3,12 @@ from collections import defaultdict
 from logging import Logger
 from simulation.simulation import Simulation
 from abc import ABC, abstractmethod
+
+from configs import simulation as SimulationConfig
 from configs import output as OutputConfig
+
+import numpy as np
+from numpy.typing import NDArray
 
 
 class OutputManager:
@@ -12,18 +17,20 @@ class OutputManager:
         from outputs.video import VideoOutput
 
         self.logger = logger
-        self.agent_paths: dict[int, list[float]] = defaultdict(list)
+        self.agent_paths: list[list[NDArray[np.float64]]] = [
+            [] for _ in range(SimulationConfig.AGENTS)
+        ]
         self.outputs: list[BaseOutput] = [
             PlotOutput(logger, self),
-            VideoOutput(logger, self),
+            # VideoOutput(logger, self),
         ]
 
     # Called by simulation by callback after each step
-    def add_agent_positions(self, status: Simulation):
-        self.add_point(0, status.pursuer.position)
-        self.add_point(1, status.evader.position)
+    def add_agent_positions(self, simulation: Simulation):
+        for i in range(simulation.N):
+            self.add_point(i, simulation.positions[i])
 
-    def add_point(self, agent_id: int, position: float):
+    def add_point(self, agent_id: int, position: NDArray[np.float64]):
         self.agent_paths[agent_id].append(position)
 
     def create_outputs(self):
@@ -41,25 +48,15 @@ class BaseOutput(ABC):
     def _setup_plot_axes(self):
         self.ax.clear()
         self.ax.set_xlabel("Position")
-        self.ax.set_title("Agent Movement on a 1D Line")
-        self.ax.set_yticks([])
-        self.ax.set_ylim(OutputConfig.Y_LIM)
+        self.ax.set_title("Agent Movement")
 
         # Determine overall x-axis limits
-        all_positions: list[float] = []
-        for path in self.output_manager.agent_paths.values():
-            all_positions.extend(path)
+        x_padding: float = SimulationConfig.WIDTH * OutputConfig.X_PADDING_RATIO
+        y_padding: float = SimulationConfig.LENGTH * OutputConfig.Y_PADDING_RATIO
 
-        if all_positions:
-            min_x: float = min(all_positions)
-            max_x: float = max(all_positions)
-            x_range: float = max_x - min_x
-            padding: float = (
-                x_range * OutputConfig.X_PADDING_RATIO if x_range > 0 else 1.0
-            )
-            self.ax.set_xlim(min_x - padding, max_x + padding)
-        else:
-            self.ax.set_xlim(-1, 1)  # Default limits if no positions
+        self.ax.set_xlim(0 - x_padding, SimulationConfig.WIDTH + x_padding)
+        self.ax.set_ylim(0 - y_padding, SimulationConfig.LENGTH + y_padding)
+        self.ax.set_aspect("equal")
 
     @abstractmethod
     def create(self) -> None:
