@@ -1,8 +1,98 @@
 from logging import Logger
 from typing import Callable
+import numpy as np
+import numpy.typing as npt
 
-from simulation.agent import Agent
-from simulation.mdp import Simulation
+from configs import simulation as SimulationConfig
+from simulation.mdp import MDP
+
+type Vector = npt.NDArray[np.float64]
+type Scalar = float
+type Vectors = npt.NDArray[np.float64]
+type Scalars = npt.NDArray[np.float64]
+type VectorType = Vectors | Vector
+type ScalarType = Scalars | Scalar
+
+
+def step_agents(
+    positions: VectorType,
+    velocities: VectorType,
+    accelerations: VectorType,
+    headings: ScalarType,
+    thrusts: ScalarType,
+    rotation_rates: ScalarType,
+) -> tuple[VectorType, VectorType, VectorType, ScalarType]:
+    dt = 1.0 / SimulationConfig.STEPS_PER_SECOND
+
+    headings = headings + rotation_rates * dt
+    ax = thrusts * np.cos(headings)
+    ay = thrusts * np.sin(headings)
+
+    accelerations = np.stack((ax, ay), axis=-1)
+    positions = positions + velocities * dt + 0.5 * accelerations * dt * dt
+    velocities = velocities + accelerations * dt
+
+    return (positions, velocities, accelerations, headings)
+
+
+class Simulation:
+    def __init__(self, N: int):
+        self.N = N
+        self.timestep = 0
+
+        # agent values
+        self.positions: Vectors = np.random.rand(N, 2) * [
+            SimulationConfig.WIDTH,
+            SimulationConfig.LENGTH,
+        ]
+        # self.velocities: Vectors = np.random.uniform(-25, 25, size=(N, 2))
+        self.velocities: Vectors = np.zeros((N, 2))
+        self.accelerations: Vectors = np.zeros((N, 2))
+        self.headings: Scalars = np.arctan2(
+            self.velocities[:, 1], self.velocities[:, 0]
+        )
+
+        # agent inputs
+        self.thrusts: Scalars = np.zeros((N,))
+        self.rotation_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
+
+    def step(self):
+        new_thrusts = np.zeros(self.N)
+        new_rotation_rates = np.zeros(self.N)
+
+        # determine each agent's action via MDP
+        for i in range(self.N):
+            mdp = MDP(
+                i,
+                self.positions,
+                self.velocities,
+                self.accelerations,
+                self.headings,
+                self.thrusts,
+                self.rotation_rates,
+            )
+            action = mdp.find_action()
+            new_thrusts[i] = action[0]
+            new_rotation_rates[i] = action[1]
+
+        # update all agents with their chosen action
+        self.thrusts = new_thrusts
+        self.rotation_rates = new_rotation_rates
+
+        # step each agent with their action and update the state
+        self.positions, self.velocities, self.accelerations, self.headings = (  # type: ignore
+            step_agents(
+                self.positions,
+                self.velocities,
+                self.accelerations,
+                self.headings,
+                self.thrusts,
+                self.rotation_rates,
+            )
+        )
+
+        # increase timestep
+        self.timestep += 1
 
 
 class SimulationManager:
@@ -11,15 +101,13 @@ class SimulationManager:
 
     def __init__(self, logger: Logger):
         self.logger = logger
-
-        # Initialise agents outside of simulation to reserve memory for numba
-        pursuer = Agent(0)
-        evader = Agent(1)
-        self.simulation = Simulation(pursuer, evader)
+        self.simulation = Simulation(SimulationConfig.AGENTS)
 
     def run(self, *callbacks: Callable[[Simulation], None]):
         while True:
             self.simulation.step()
+
+            self.logger.info(self.simulation.velocities)
 
             for callback in callbacks:
                 callback(self.simulation)
