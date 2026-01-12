@@ -3,18 +3,24 @@ from rich.layout import Layout
 from rich.panel import Panel
 from rich.console import Console, Group, ConsoleOptions, RenderResult
 from rich.ansi import AnsiDecoder
+from rich.align import Align
+from rich.table import Table
+from rich.box import SQUARE
+from rich.text import Text
 
 # import asciichartpy as achart
 import plotext as plt
 import psutil
 import os
-import math
+import numpy as np
 from datetime import datetime
-
 from typing import Type
 from types import TracebackType
-from simulation.simulation import Simulation
+
+from simulation.simulation import Simulation, Vector
+
 from configs import simulation as SimulationConfig
+from configs import display as DisplayConfig
 
 
 class Display:
@@ -63,6 +69,7 @@ class Display:
 
     def update(self, simulation: Simulation):
         self.values.update(self.make_values(simulation))
+        self.map.update(self.make_map(simulation))
 
         if datetime.now().timestamp() - self.charts_updated_at > 1:
             self.charts_updated_at = datetime.now().timestamp()
@@ -74,16 +81,86 @@ class Display:
     def make_values(self, simulation: Simulation) -> Panel:
         timestep = simulation.timestep
         simulation_time = timestep / SimulationConfig.STEPS_PER_SECOND
-        real_time = round(datetime.now().timestamp() - self.start_time, 3)
+        real_time = datetime.now().timestamp() - self.start_time
         agent_count = simulation.N
         hard_deck = SimulationConfig.HARD_DECK
 
         return Panel(
             self.console.render_str(
-                f"Timestep: {timestep}\nSimulation Time: {simulation_time}s\nReal Time: {real_time}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}"
+                f"Timestep: {timestep}\nSimulation Time: {simulation_time:.3f}s\nReal Time: {real_time:.3f}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}"
             ),
             title="[bold]Simulation Status[/bold]",
             title_align="left",
+        )
+
+    def make_map(self, simulation: Simulation) -> Panel:
+        # --- Symbol Calculation ---
+        symbols = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
+        # Predefined color palette for agents
+        agent_colors = ["red", "green", "blue", "magenta", "cyan", "white"]
+
+        headings = (-simulation.headings) % (2 * np.pi)
+        indices = np.floor((headings + np.pi / 8) / (2 * np.pi) * 8).astype(int) % 8
+        agent_symbols = [symbols[i] for i in indices]
+
+        # --- Grid Logic ---
+        grid_size = DisplayConfig.MAP_HEIGHT
+        BLANK = "　"
+        # Initialize a 2D list of Rich Text objects for formatting
+        map_grid = [[Text(BLANK) for _ in range(grid_size)] for _ in range(grid_size)]
+
+        scale_x, scale_y = (
+            grid_size / SimulationConfig.WIDTH,
+            grid_size / SimulationConfig.LENGTH,
+        )
+
+        # Use enumerate to get a stable index for each agent
+        for i, (pos, sym) in enumerate(zip(simulation.positions, agent_symbols)):
+            x = int(max(0, min(grid_size - 1, pos[0] * scale_x)))
+            y = int(max(0, min(grid_size - 1, pos[1] * scale_y)))
+
+            # Assign a stable color based on the agent's unique index
+            color = agent_colors[i % len(agent_colors)]
+            map_grid[grid_size - 1 - y][x] = self.console.render_str(
+                f"[bold][{color}]{sym}[/{color}][/bold]"
+            )
+
+        # --- Rendering ---
+        map_display = Table.grid()
+        for row in map_grid:
+            combined_row = Text("")
+            for char in row:
+                combined_row.append(char)
+            map_display.add_row(combined_row)
+
+        map_panel = Panel(
+            map_display,
+            box=SQUARE,
+            border_style="bold yellow",
+            padding=0,
+        )
+
+        layout = Table.grid(padding=0)
+        layout.add_column(justify="right", vertical="top")
+        layout.add_column()
+
+        # Y-Axis Column
+        y_axis_labels = self.console.render_str(
+            f"{SimulationConfig.LENGTH}{('\n' * (grid_size + 1))}0　　　"
+        )
+        layout.add_row(y_axis_labels, map_panel)
+
+        # X-Axis Row
+        x_max = str(SimulationConfig.WIDTH)
+        x_row = self.console.render_str(f" 0{' ' * (grid_size * 2 - 2)}{x_max}")
+        layout.add_row("", x_row)
+
+        return Panel(
+            Align.center(layout),
+            title="[bold]Simulation Preview[/bold]",
+            title_align="left",
+            padding=(1, 1),
+            expand=True,
         )
 
     def make_cpu(self) -> Panel:
