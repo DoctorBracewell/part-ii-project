@@ -1,0 +1,1 @@
+MAP_HEIGHT = 18

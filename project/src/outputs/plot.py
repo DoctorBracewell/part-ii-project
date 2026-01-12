@@ -13,17 +13,16 @@ class PlotOutput(BaseOutput):
         super().__init__(logger, output_manager)
 
     def create(self):
-        self._setup_plot_axes()
-
-        for agent_id, agent_path in enumerate(self.output_manager.agent_paths):
-            path = np.array(agent_path)
+        for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
+            positions = [pos for _, pos in agent_path]
+            path = np.stack(positions)
 
             if len(agent_path) > 1:
                 # Plot the path line
                 self.ax.plot(
                     path[:, 0],
                     path[:, 1],
-                    label=f"Agent {agent_id}",
+                    label=f"Agent {agent_idx}",
                     linewidth=1.5,
                 )
 

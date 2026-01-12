@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.lines import Line2D  # Import Line2D
+from matplotlib.quiver import Quiver
 from logging import Logger
 
 from configs import output as OutputConfig
@@ -9,76 +9,63 @@ from configs.outputs import video as VideoConfig
 
 from outputs.base import OutputManager, BaseOutput
 import os
-import numpy as np
 from datetime import datetime
 
 
 class VideoOutput(BaseOutput):
     def __init__(self, logger: Logger, output_manager: OutputManager):
         super().__init__(logger, output_manager)
-        self.agent_circles: list[Line2D] = []
-        self.agent_colours: dict[int, tuple[float, float, float, float]] = {}
+        self.agent_symbols: list[Quiver] = []
+        self.agent_colours: list[tuple[float, float, float, float]] = []
+
+    def heading_to_vector(self, heading: float) -> tuple[float, float]:
+        """Convert a heading angle (in radians) to a 2D unit vector."""
+        import math
+
+        return (math.cos(heading), math.sin(heading))
 
     def create(self):
-        self._setup_plot_axes()
-        y_offset_step = OutputConfig.Y_OFFSET_STEP
-        agent_ids = sorted(self.output_manager.agent_paths.keys())
+        num_agents = len(self.output_manager.agent_paths)
 
         # Assign unique colors to agents
-        colours = plt.cm.get_cmap("tab10", len(agent_ids))
-        for i, agent_id in enumerate(agent_ids):
-            self.agent_colours[agent_id] = colours(i)
+        colours = plt.cm.get_cmap("tab10", num_agents)
 
-        # Create plots
-        self.agent_circles = []
-        for i, agent_id in enumerate(agent_ids):
-            path = self.output_manager.agent_paths[agent_id]
-            y_offset = i * y_offset_step - (len(agent_ids) - 1) * y_offset_step / 2
+        # Create a circle for each agent at its starting position
+        for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
+            vx, vy = self.heading_to_vector(agent_path[0][0])
 
-            (line,) = self.ax.plot(
-                path[0],
-                y_offset,
-                marker="o",
-                color=self.agent_colours[agent_id],
-                label=f"Agent {agent_id}",
-                markersize=10,  # size of the circle
-                linestyle="None",
+            symbol = self.ax.quiver(
+                agent_path[0][1][0],
+                agent_path[0][1][1],
+                vx,
+                vy,
+                color=colours(agent_idx),
+                label=f"Agent {agent_idx}",
                 zorder=5,  # ensure circles are on top
             )
-            self.agent_circles.append(line)
+
+            self.agent_symbols.append(symbol)
+            self.agent_colours.append(colours(agent_idx))
 
         self.ax.legend()
 
-    def _update(self, frame: int) -> list[Line2D]:
-        updated_circles: list[Line2D] = []
+    def _update(self, frame: int) -> list[Quiver]:
+        updated_symbols: list[Quiver] = []
 
-        for i, agent_id in enumerate(sorted(self.output_manager.agent_paths.keys())):
-            path = self.output_manager.agent_paths[agent_id]
-
-            if frame < len(path):
-                self.agent_circles[i].set_data(
-                    np.array([path[frame]]),
-                    np.array([self.agent_circles[i].get_ydata()[0]]),  # type: ignore
+        for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
+            if frame < len(agent_path):
+                # Update position
+                self.agent_symbols[agent_idx].set_offsets(
+                    [agent_path[frame][1][0], agent_path[frame][1][1]]
                 )
-                self.agent_circles[i].set_color(
-                    self.agent_colours[agent_id]
-                )  # Ensure color is set
-                self.agent_circles[i].set_alpha(1)  # Make visible
 
-            else:
-                # If an agent's path is shorter than the current frame, keep it at its last position or hide it
-                if path:
-                    self.agent_circles[i].set_data(
-                        np.array([path[-1]]),
-                        np.array([self.agent_circles[i].get_ydata()[0]]),  # type: ignore
-                    )
-                self.agent_circles[i].set_color(
-                    self.agent_colours[agent_id]
-                )  # Ensure color is set
-                self.agent_circles[i].set_alpha(0.5)  # Fade out if path ended
-            updated_circles.append(self.agent_circles[i])
+                # Update heading
+                vx, vy = self.heading_to_vector(agent_path[frame][0])
+                self.agent_symbols[agent_idx].set_UVC(vx, vy)
 
-        return updated_circles
+            updated_symbols.append(self.agent_symbols[agent_idx])
+
+        return updated_symbols
 
     def save(self):
         os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
