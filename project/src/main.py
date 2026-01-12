@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from rich.logging import RichHandler
 from rich.console import Console
@@ -29,16 +30,24 @@ logger = logging.getLogger("rich")
 
 
 def main():
-    with Display(console) as display:
-        output_manager = OutputManager(logger)
-        simulation = SimulationManager(logger)
+    output_manager = OutputManager(logger)
+    simulation_manager = SimulationManager(logger)
 
-        # Run the simulation until termination, always creating outputs after completion
-        try:
-            simulation.run(display.update, output_manager.add_agent_positions)
-        except KeyboardInterrupt:
-            pass
-        finally:
+    try:
+        logger.info("Simulation begun with t=0")
+
+        if "--no-display" in sys.argv:
+            simulation_manager.run(output_manager.add_agent_data)
+        else:
+            with Display(console) as display:
+                simulation_manager.run(display.update, output_manager.add_agent_data)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        logger.info(
+            "Simulation ended with t=%d", simulation_manager.simulation.timestep
+        )
+        if "--no-output" not in sys.argv:
             output_manager.create_outputs()
 
 

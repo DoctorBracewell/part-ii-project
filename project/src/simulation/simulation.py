@@ -4,6 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 from configs import simulation as SimulationConfig
+from configs import mdp as MDPConfig
 from simulation.mdp import MDP
 
 type Vector = npt.NDArray[np.float64]
@@ -35,22 +36,44 @@ def step_agents(
     return (positions, velocities, accelerations, headings)
 
 
+def forward_project(
+    steps: int,
+    positions: Vectors,
+    velocities: Vectors,
+    accelerations: Vectors,
+    headings: ScalarType,
+    thrusts: Scalars,
+    rotation_rates: Scalars,
+) -> tuple[Vectors, Vectors, Vectors, Scalars]:
+    # forward project
+    for _ in range(steps):
+        positions, velocities, accelerations, headings = step_agents(
+            positions,
+            velocities,
+            accelerations,
+            headings,
+            thrusts,
+            rotation_rates,
+        )
+
+    return positions, velocities, accelerations, headings  # type: ignore
+
+
 class Simulation:
     def __init__(self, N: int):
         self.N = N
         self.timestep = 0
 
-        # agent values
+        # initialise agent values
         self.positions: Vectors = np.random.rand(N, 2) * [
             SimulationConfig.WIDTH,
             SimulationConfig.LENGTH,
         ]
-        # self.velocities: Vectors = np.random.uniform(-25, 25, size=(N, 2))
-        self.velocities: Vectors = np.zeros((N, 2))
+        self.velocities: Vectors = np.random.uniform(-25, 25, size=(N, 2))
         self.accelerations: Vectors = np.zeros((N, 2))
-        self.headings: Scalars = np.arctan2(
-            self.velocities[:, 1], self.velocities[:, 0]
-        )
+        self.headings: Scalars = np.zeros(N)
+
+        # np.arctan2(self.velocities[:, 1], self.velocities[:, 0])
 
         # agent inputs
         self.thrusts: Scalars = np.zeros((N,))
@@ -59,6 +82,16 @@ class Simulation:
     def step(self):
         new_thrusts = np.zeros(self.N)
         new_rotation_rates = np.zeros(self.N)
+
+        projected_positions, projected_velocities, _, _ = forward_project(
+            MDPConfig.FORWARD_PROJECTION_STEPS,
+            self.positions,
+            self.velocities,
+            self.accelerations,
+            self.headings,
+            self.thrusts,
+            self.rotation_rates,
+        )
 
         # determine each agent's action via MDP
         for i in range(self.N):
@@ -70,6 +103,8 @@ class Simulation:
                 self.headings,
                 self.thrusts,
                 self.rotation_rates,
+                projected_positions,
+                projected_velocities,
             )
             action = mdp.find_action()
             new_thrusts[i] = action[0]
@@ -106,8 +141,6 @@ class SimulationManager:
     def run(self, *callbacks: Callable[[Simulation], None]):
         while True:
             self.simulation.step()
-
-            self.logger.info(self.simulation.velocities)
 
             for callback in callbacks:
                 callback(self.simulation)
