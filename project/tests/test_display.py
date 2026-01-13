@@ -1,8 +1,8 @@
 from unittest.mock import patch, MagicMock
 from display import Display
-from simulation.mdp import Simulation
-from simulation.agent import Agent
+from simulation.simulation import Simulation
 from rich.console import Console
+from configs import simulation as SimulationConfig
 
 
 @patch("display.Live")
@@ -30,9 +30,7 @@ def test_display_context_manager(mock_live: MagicMock):
 def test_display_update_values(mock_live: MagicMock):
     console = Console()
     display = Display(console)
-    pursuer = Agent(0)
-    evader = Agent(1)
-    simulation = Simulation(pursuer, evader)
+    simulation = Simulation(N=2)
     with patch.object(display, "make_values") as mock_make_values:
         display.update(simulation)
         mock_make_values.assert_called_once_with(simulation)
@@ -43,9 +41,7 @@ def test_display_update_values(mock_live: MagicMock):
 def test_display_update_charts(mock_live: MagicMock):
     console = Console()
     display = Display(console)
-    pursuer = Agent(0)
-    evader = Agent(1)
-    simulation = Simulation(pursuer, evader)
+    simulation = Simulation(N=2)
     with patch.object(display, "make_cpu") as mock_make_cpu, patch.object(
         display, "make_mem"
     ) as mock_make_mem:
@@ -58,9 +54,7 @@ def test_display_update_charts(mock_live: MagicMock):
 def test_make_values():
     console = Console()
     display = Display(console)
-    pursuer = Agent(0)
-    evader = Agent(1)
-    simulation = Simulation(pursuer, evader)
+    simulation = Simulation(N=2)
     panel = display.make_values(simulation)
     assert "Timestep: 0" in str(panel.renderable)
 

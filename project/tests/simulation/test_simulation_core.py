@@ -1,7 +1,6 @@
-from simulation.simulation import SimulationManager
-from simulation.mdp import Simulation
-from simulation.agent import Agent
+from simulation.simulation import SimulationManager, Simulation
 from unittest.mock import Mock, patch, MagicMock
+import numpy as np
 
 
 def test_simulation_initialization():
@@ -10,8 +9,10 @@ def test_simulation_initialization():
 
     assert manager.logger == mock_logger
     assert isinstance(manager.simulation, Simulation)
-    assert isinstance(manager.simulation.pursuer, Agent)
-    assert isinstance(manager.simulation.evader, Agent)
+    assert manager.simulation.N > 0
+    assert isinstance(manager.simulation.positions, np.ndarray)
+    assert isinstance(manager.simulation.velocities, np.ndarray)
+    assert isinstance(manager.simulation.headings, np.ndarray)
 
 
 def test_simulation_step():
@@ -19,14 +20,14 @@ def test_simulation_step():
     manager = SimulationManager(logger=mock_logger)
 
     initial_timestep = manager.simulation.timestep
-    initial_pursuer_state = manager.simulation.pursuer.get_state()
-    initial_evader_state = manager.simulation.evader.get_state()
+    initial_positions = manager.simulation.positions.copy()
+    initial_velocities = manager.simulation.velocities.copy()
 
     manager.simulation.step()
 
     assert manager.simulation.timestep == initial_timestep + 1
-    assert manager.simulation.pursuer.get_state() != initial_pursuer_state
-    assert manager.simulation.evader.get_state() != initial_evader_state
+    assert not np.array_equal(manager.simulation.positions, initial_positions)
+    assert not np.array_equal(manager.simulation.velocities, initial_velocities)
 
 
 @patch("simulation.simulation.SimulationManager.run")
