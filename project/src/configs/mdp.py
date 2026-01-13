@@ -1,3 +1,3 @@
-# from configs import simulation as SimulationConfig
+from configs import simulation as SimulationConfig
 
-FORWARD_PROJECTION_STEPS = 1
+FORWARD_PROJECTION_STEPS = SimulationConfig.STEPS_PER_SECOND * 1

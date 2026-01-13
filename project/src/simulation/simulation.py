@@ -18,11 +18,10 @@ type ScalarType = Scalars | Scalar
 def step_agents(
     positions: VectorType,
     velocities: VectorType,
-    accelerations: VectorType,
     headings: ScalarType,
     thrusts: ScalarType,
     rotation_rates: ScalarType,
-) -> tuple[VectorType, VectorType, VectorType, ScalarType]:
+) -> tuple[VectorType, VectorType, ScalarType]:
     dt = 1.0 / SimulationConfig.STEPS_PER_SECOND
 
     headings = headings + rotation_rates * dt
@@ -33,30 +32,28 @@ def step_agents(
     positions = positions + velocities * dt + 0.5 * accelerations * dt * dt
     velocities = velocities + accelerations * dt
 
-    return (positions, velocities, accelerations, headings)
+    return (positions, velocities, headings)
 
 
 def forward_project(
     steps: int,
     positions: Vectors,
     velocities: Vectors,
-    accelerations: Vectors,
     headings: ScalarType,
     thrusts: Scalars,
     rotation_rates: Scalars,
-) -> tuple[Vectors, Vectors, Vectors, Scalars]:
+) -> tuple[Vectors, Vectors, Scalars]:
     # forward project
     for _ in range(steps):
-        positions, velocities, accelerations, headings = step_agents(
+        positions, velocities, headings = step_agents(
             positions,
             velocities,
-            accelerations,
             headings,
             thrusts,
             rotation_rates,
         )
 
-    return positions, velocities, accelerations, headings  # type: ignore
+    return positions, velocities, headings  # type: ignore
 
 
 class Simulation:
@@ -70,7 +67,6 @@ class Simulation:
             SimulationConfig.LENGTH,
         ]
         self.velocities: Vectors = np.random.uniform(-25, 25, size=(N, 2))
-        self.accelerations: Vectors = np.zeros((N, 2))
         self.headings: Scalars = np.zeros(N)
 
         # np.arctan2(self.velocities[:, 1], self.velocities[:, 0])
@@ -83,11 +79,10 @@ class Simulation:
         new_thrusts = np.zeros(self.N)
         new_rotation_rates = np.zeros(self.N)
 
-        projected_positions, projected_velocities, _, _ = forward_project(
+        projected_positions, projected_velocities, _ = forward_project(
             MDPConfig.FORWARD_PROJECTION_STEPS,
             self.positions,
             self.velocities,
-            self.accelerations,
             self.headings,
             self.thrusts,
             self.rotation_rates,
@@ -99,7 +94,6 @@ class Simulation:
                 i,
                 self.positions,
                 self.velocities,
-                self.accelerations,
                 self.headings,
                 self.thrusts,
                 self.rotation_rates,
@@ -115,11 +109,10 @@ class Simulation:
         self.rotation_rates = new_rotation_rates
 
         # step each agent with their action and update the state
-        self.positions, self.velocities, self.accelerations, self.headings = (  # type: ignore
+        self.positions, self.velocities, self.headings = (  # type: ignore
             step_agents(
                 self.positions,
                 self.velocities,
-                self.accelerations,
                 self.headings,
                 self.thrusts,
                 self.rotation_rates,
@@ -141,6 +134,7 @@ class SimulationManager:
     def run(self, *callbacks: Callable[[Simulation], None]):
         while True:
             self.simulation.step()
+            self.logger.info(self.simulation.rotation_rates)
 
             for callback in callbacks:
                 callback(self.simulation)

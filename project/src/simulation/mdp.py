@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 # Actions
 type Action = NDArray[np.float64]
-thrusts: list[float] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-rotation_rates: list[float] = [-1, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1]
+thrusts = np.arange(0.0, 7.0, 1.0, dtype=np.float64)
+rotation_rates = np.arange(-1.5, 1.5, 0.1, dtype=np.float64)
 actions: NDArray[np.float64] = np.array(
     [
         [thrust * 5, rotation_rate]
@@ -28,7 +28,6 @@ class MDP:
         i: int,
         positions: Vectors,
         velocities: Vectors,
-        accelerations: Vectors,
         headings: Scalars,
         thrusts: Scalars,
         rotation_rates: Scalars,
@@ -38,7 +37,6 @@ class MDP:
         self.i = i
         self.positions = positions
         self.velocities = velocities
-        self.accelerations = accelerations
         self.headings = headings
 
         self.thrusts = thrusts
@@ -63,11 +61,10 @@ class MDP:
             # Choose action
             action = actions[i]
             # Project self agent forward with that action
-            self_projected_position, _, _, _ = forward_project(
+            self_projected_position, _, _ = forward_project(
                 MDPConfig.FORWARD_PROJECTION_STEPS,
                 self.positions[self.i],
                 self.velocities[self.i],
-                self.accelerations[self.i],
                 self.headings[self.i],
                 action[0],
                 action[1],
@@ -95,25 +92,6 @@ class MDP:
         total_reward = best_positive_reward - best_negative_reward
         return total_reward
 
-    # def negative_maximum(self):
-    #     best_value = -np.inf
-
-    #     for p, v in self.other_agents:
-    #         # numpy arrays for vectorised computation
-    #         positions = negative_positions(p, v)
-    #         radii = negative_radii(p, v)
-    #         distances = np.abs(positions - self.self_agent_pos)
-    #         within_radius = distances <= radii
-    #         values = (
-    #             within_radius * negative_magnitudes * (negative_discounts**distances)
-    #         )
-    #         max_value = np.max(values)
-
-    #         if max_value > best_value:
-    #             best_value = max_value
-
-    #     return best_value
-
     def hard_deck_penalty(self):
         return 0.0
 
@@ -121,8 +99,8 @@ class MDP:
 def positive_maximum(self_position: Vector, other_positions: Vectors) -> float:
     magnitudes, discounts, positions = positive_parameters(other_positions)
 
-    distances_squared = np.sum((positions - self_position) ** 2, axis=1)
-    values = magnitudes * (discounts**distances_squared)
+    distances = np.sqrt(np.sum((positions - self_position) ** 2, axis=1))
+    values = magnitudes * (discounts**distances)
 
     return np.max(values)
 
@@ -131,7 +109,7 @@ def positive_parameters(other_positions: Vectors) -> tuple[Scalars, Scalars, Vec
     num_rewards = other_positions.shape[0]
 
     magnitudes = np.ones(num_rewards) * 200
-    discounts = np.ones(num_rewards) * 0.999999
+    discounts = np.ones(num_rewards) * 0.99999
     positions = other_positions
 
     return magnitudes, discounts, positions
@@ -144,17 +122,17 @@ def negative_maximum(
         other_positions, other_velocities
     )
 
-    distances_squared = np.sum((positions - self_position) ** 2, axis=1)
-    distances_contained = distances_squared <= radii_squared
-    values = distances_contained * magnitudes * (discounts**distances_squared)
+    distances = np.sqrt(np.sum((positions - self_position) ** 2, axis=1))
+    distances_contained = distances <= radii_squared
+    values = distances_contained * magnitudes * (discounts**distances)
 
-    if (
-        self_position[0] < 0
-        or self_position[0] > SimulationConfig.WIDTH
-        or self_position[1] < 0
-        or self_position[1] > SimulationConfig.LENGTH
-    ):
-        values += SimulationConfig.PENALTY  # Large penalty for being out of bounds
+    # if (
+    #     self_position[0] < 0
+    #     or self_position[0] > SimulationConfig.WIDTH
+    #     or self_position[1] < 0
+    #     or self_position[1] > SimulationConfig.LENGTH
+    # ):
+    #     values += SimulationConfig.PENALTY  # Large penalty for being out of bounds
 
     return np.max(values)
 
@@ -183,8 +161,8 @@ def negative_parameters(
                 other_positions[i, 1] + other_velocities[i, 1] * timesteps[j]
             )
 
-            # radius = ||v||^2 * t^2
-            radii[idx] = np.sum(other_velocities[i] ** 2) * (timesteps[j] ** 2)
+            # radius = ||v|| * t
+            radii[idx] = np.linalg.norm(other_velocities[i]) * timesteps[j]
 
             idx += 1
 
