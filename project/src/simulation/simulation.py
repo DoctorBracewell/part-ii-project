@@ -11,49 +11,112 @@ type Vector = npt.NDArray[np.float64]
 type Scalar = float
 type Vectors = npt.NDArray[np.float64]
 type Scalars = npt.NDArray[np.float64]
-type VectorType = Vectors | Vector
-type ScalarType = Scalars | Scalar
+
+
+def velocity_angles_scalars_to_vectors(
+    velocities: Scalars, flight_path_angles: Scalars, azimuth_angles: Scalars
+) -> Vectors:
+    vx = velocities * np.cos(flight_path_angles) * np.cos(azimuth_angles)
+    vy = velocities * np.cos(flight_path_angles) * np.sin(azimuth_angles)
+    vz = velocities * np.sin(flight_path_angles)
+
+    return np.stack((vx, vy, vz), axis=-1)
 
 
 def step_agents(
-    positions: VectorType,
-    velocities: VectorType,
-    headings: ScalarType,
-    thrusts: ScalarType,
-    rotation_rates: ScalarType,
-) -> tuple[VectorType, VectorType, ScalarType]:
+    positions: Vectors,
+    velocities: Scalars,
+    attack_angles: Scalars,
+    flight_path_angles: Scalars,
+    roll_angles: Scalars,
+    azimuth_angles: Scalars,
+    thrusts: Scalars,
+    attack_angle_rates: Scalars,
+    roll_angle_rates: Scalars,
+) -> tuple[Vectors, Vectors, Scalars, Scalars, Scalars, Scalars, Scalars]:
     dt = 1.0 / SimulationConfig.STEPS_PER_SECOND
+    nf = thrusts * np.sin(attack_angles) + SimulationConfig.L
+    g = SimulationConfig.G
 
-    headings = headings + rotation_rates * dt
-    ax = thrusts * np.cos(headings)
-    ay = thrusts * np.sin(headings)
+    attack_angles = attack_angles + attack_angle_rates * dt
+    roll_angles = roll_angles + roll_angle_rates * dt
 
-    accelerations = np.stack((ax, ay), axis=-1)
-    positions = positions + velocities * dt + 0.5 * accelerations * dt * dt
-    velocities = velocities + accelerations * dt
+    velocities_rates = g * (
+        thrusts * np.cos(attack_angles) - np.sin(flight_path_angles)
+    )
+    velocities = velocities + velocities_rates * dt
 
-    return (positions, velocities, headings)
+    flight_path_angles_rates = (g / velocities) * (
+        nf * np.cos(roll_angles) - np.cos(flight_path_angles)
+    )
+    flight_path_angles = flight_path_angles + flight_path_angles_rates * dt
+
+    azimuth_angles_rates = g * (
+        (nf * np.sin(roll_angles)) / (velocities * np.cos(flight_path_angles))
+    )
+    azimuth_angles = azimuth_angles + azimuth_angles_rates * dt
+
+    velocities_vectors = velocity_angles_scalars_to_vectors(
+        velocities, flight_path_angles, azimuth_angles
+    )
+    positions = positions + velocities_vectors * dt
+
+    return (
+        positions,
+        velocities_vectors,
+        velocities,
+        attack_angles,
+        flight_path_angles,
+        roll_angles,
+        azimuth_angles,
+    )
 
 
 def forward_project(
     steps: int,
     positions: Vectors,
-    velocities: Vectors,
-    headings: ScalarType,
+    velocities: Scalars,
+    attack_angles: Scalars,
+    flight_path_angles: Scalars,
+    roll_angles: Scalars,
+    azimuth_angles: Scalars,
     thrusts: Scalars,
-    rotation_rates: Scalars,
-) -> tuple[Vectors, Vectors, Scalars]:
+    attack_angle_rates: Scalars,
+    roll_angle_rates: Scalars,
+) -> tuple[Vectors, Vectors, Scalars, Scalars, Scalars, Scalars, Scalars]:
     # forward project
+    velocities_vectors = np.zeros_like(positions)
+
     for _ in range(steps):
-        positions, velocities, headings = step_agents(
+        (
+            positions,
+            velocities_vectors,
+            velocities,
+            attack_angles,
+            flight_path_angles,
+            roll_angles,
+            azimuth_angles,
+        ) = step_agents(
             positions,
             velocities,
-            headings,
+            attack_angles,
+            flight_path_angles,
+            roll_angles,
+            azimuth_angles,
             thrusts,
-            rotation_rates,
+            attack_angle_rates,
+            roll_angle_rates,
         )
 
-    return positions, velocities, headings  # type: ignore
+    return (
+        positions,
+        velocities_vectors,
+        velocities,
+        attack_angles,
+        flight_path_angles,
+        roll_angles,
+        azimuth_angles,
+    )
 
 
 class Simulation:
@@ -62,30 +125,48 @@ class Simulation:
         self.timestep = 0
 
         # initialise agent values
-        self.positions: Vectors = np.random.rand(N, 2) * [
-            SimulationConfig.WIDTH,
-            SimulationConfig.LENGTH,
-        ]
-        self.velocities: Vectors = np.random.uniform(-25, 25, size=(N, 2))
-        self.headings: Scalars = np.zeros(N)
-
-        # np.arctan2(self.velocities[:, 1], self.velocities[:, 0])
+        # self.positions: Vectors = np.random.rand(N, 3) * [
+        #     SimulationConfig.WIDTH,
+        #     SimulationConfig.LENGTH,
+        #     SimulationConfig.HEIGHT,
+        # ]
+        self.positions: Vectors = np.array([[1000, 1000, 6500], [9000, 9000, 6500]])
+        # self.velocities: Scalars = np.random.uniform(-25, 25, size=(N,))
+        self.velocities = np.zeros(N) + 0.001
+        self.attack_angles: Scalars = np.zeros(N)
+        self.flight_path_angles: Scalars = np.zeros(N)
+        self.roll_angles: Scalars = np.zeros(N)
+        self.azimuth_angles: Scalars = np.zeros(N)
 
         # agent inputs
         self.thrusts: Scalars = np.zeros((N,))
-        self.rotation_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
+        self.attack_angle_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
+        self.roll_angle_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
 
     def step(self):
         new_thrusts = np.zeros(self.N)
-        new_rotation_rates = np.zeros(self.N)
+        new_attack_angle_rates = np.zeros(self.N)
+        new_roll_angle_rates = np.zeros(self.N)
 
-        projected_positions, projected_velocities, _ = forward_project(
+        (
+            projected_positions,
+            projected_velocities,
+            _,
+            _,
+            _,
+            _,
+            _,
+        ) = forward_project(
             MDPConfig.FORWARD_PROJECTION_STEPS,
             self.positions,
             self.velocities,
-            self.headings,
-            self.thrusts,
-            self.rotation_rates,
+            self.attack_angles,
+            self.flight_path_angles,
+            self.roll_angles,
+            self.azimuth_angles,
+            new_thrusts,
+            new_attack_angle_rates,
+            new_roll_angle_rates,
         )
 
         # determine each agent's action via MDP
@@ -94,28 +175,38 @@ class Simulation:
                 i,
                 self.positions,
                 self.velocities,
-                self.headings,
+                self.attack_angles,
+                self.flight_path_angles,
+                self.roll_angles,
+                self.azimuth_angles,
                 self.thrusts,
-                self.rotation_rates,
+                self.attack_angle_rates,
+                self.roll_angle_rates,
                 projected_positions,
                 projected_velocities,
             )
             action = mdp.find_action()
             new_thrusts[i] = action[0]
-            new_rotation_rates[i] = action[1]
+            new_attack_angle_rates[i] = action[1]
+            new_roll_angle_rates[i] = action[2]
 
         # update all agents with their chosen action
         self.thrusts = new_thrusts
-        self.rotation_rates = new_rotation_rates
+        self.attack_angle_rates = new_attack_angle_rates
+        self.roll_angle_rates = new_roll_angle_rates
 
         # step each agent with their action and update the state
-        self.positions, self.velocities, self.headings = (  # type: ignore
+        self.positions, _, self.velocities, self.attack_angles, self.flight_path_angles, self.roll_angles, self.azimuth_angles = (  # type: ignore
             step_agents(
                 self.positions,
                 self.velocities,
-                self.headings,
+                self.attack_angles,
+                self.flight_path_angles,
+                self.roll_angles,
+                self.azimuth_angles,
                 self.thrusts,
-                self.rotation_rates,
+                self.attack_angle_rates,
+                self.roll_angle_rates,
             )
         )
 
@@ -133,8 +224,9 @@ class SimulationManager:
 
     def run(self, *callbacks: Callable[[Simulation], None]):
         while True:
+            self.logger.info(self.simulation.positions)
             self.simulation.step()
-            self.logger.info(self.simulation.rotation_rates)
+            self.logger.info(self.simulation.positions)
 
             for callback in callbacks:
                 callback(self.simulation)

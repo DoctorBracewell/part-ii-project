@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
 from configs import mdp as MDPConfig
-from configs import simulation as SimulationConfig
 
 if TYPE_CHECKING:
     from simulation.simulation import Vectors, Scalars, Vector
@@ -12,12 +11,15 @@ if TYPE_CHECKING:
 # Actions
 type Action = NDArray[np.float64]
 thrusts = np.arange(0.0, 7.0, 1.0, dtype=np.float64)
-rotation_rates = np.arange(-1.5, 1.5, 0.1, dtype=np.float64)
+attack_angles = np.arange(-0.5, 0.5, 0.1, dtype=np.float64)
+roll_angles = np.arange(-1, 1, 0.2, dtype=np.float64)
+
 actions: NDArray[np.float64] = np.array(
     [
-        [thrust * 5, rotation_rate]
+        [thrust, attack_angle, roll_angle]
         for thrust in thrusts
-        for rotation_rate in rotation_rates
+        for attack_angle in attack_angles
+        for roll_angle in roll_angles
     ]
 )
 
@@ -27,20 +29,28 @@ class MDP:
         self,
         i: int,
         positions: Vectors,
-        velocities: Vectors,
-        headings: Scalars,
+        velocities: Scalars,
+        attack_angles: Scalars,
+        flight_path_angles: Scalars,
+        roll_angles: Scalars,
+        azimuth_angles: Scalars,
         thrusts: Scalars,
-        rotation_rates: Scalars,
+        attack_angle_rates: Scalars,
+        roll_angle_rates: Scalars,
         projected_positions: Vectors,
         projected_velocities: Vectors,
     ):
         self.i = i
         self.positions = positions
         self.velocities = velocities
-        self.headings = headings
+        self.attack_angles = attack_angles
+        self.flight_path_angles = flight_path_angles
+        self.roll_angles = roll_angles
+        self.azimuth_angles = azimuth_angles
 
         self.thrusts = thrusts
-        self.rotation_rates = rotation_rates
+        self.attack_angle_rates = attack_angle_rates
+        self.roll_angle_rates = roll_angle_rates
 
         self.projected_positions = projected_positions.copy()
         self.projected_velocities = projected_velocities.copy()
@@ -60,15 +70,21 @@ class MDP:
         for i in range(num_actions):
             # Choose action
             action = actions[i]
+
             # Project self agent forward with that action
-            self_projected_position, _, _ = forward_project(
+            results = forward_project(
                 MDPConfig.FORWARD_PROJECTION_STEPS,
-                self.positions[self.i],
-                self.velocities[self.i],
-                self.headings[self.i],
+                self.positions[self.i : self.i + 1],
+                self.velocities[self.i : self.i + 1],
+                self.attack_angles[self.i : self.i + 1],
+                self.flight_path_angles[self.i : self.i + 1],
+                self.roll_angles[self.i : self.i + 1],
+                self.azimuth_angles[self.i : self.i + 1],
                 action[0],
                 action[1],
+                action[2],
             )
+            self_projected_position = results[0][0]
 
             # Calculate reward from resulting position
             rewards[i] = self.calculate_reward(
@@ -109,7 +125,7 @@ def positive_parameters(other_positions: Vectors) -> tuple[Scalars, Scalars, Vec
     num_rewards = other_positions.shape[0]
 
     magnitudes = np.ones(num_rewards) * 200
-    discounts = np.ones(num_rewards) * 0.99999
+    discounts = np.ones(num_rewards) * 0.999
     positions = other_positions
 
     return magnitudes, discounts, positions
@@ -145,8 +161,8 @@ def negative_parameters(
     N = other_positions.shape[0]
 
     magnitudes = np.ones(N * T) * 300
-    discounts = np.ones(N * T) * 0.99999
-    positions = np.empty((N * T, 2))
+    discounts = np.ones(N * T) * 0.999
+    positions = np.empty((N * T, 3))
     radii = np.empty(N * T)
 
     # fill positions with timestep projections
@@ -159,6 +175,9 @@ def negative_parameters(
             )
             positions[idx, 1] = (
                 other_positions[i, 1] + other_velocities[i, 1] * timesteps[j]
+            )
+            positions[idx, 2] = (
+                other_positions[i, 2] + other_velocities[i, 2] * timesteps[j]
             )
 
             # radius = ||v|| * t
