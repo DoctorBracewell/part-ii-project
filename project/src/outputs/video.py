@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.quiver import Quiver
 from logging import Logger
+import math
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
+from matplotlib.artist import Artist
 
 from configs import output as OutputConfig
 from configs import simulation as SimulationConfig
@@ -15,71 +17,81 @@ from datetime import datetime
 class VideoOutput(BaseOutput):
     def __init__(self, logger: Logger, output_manager: OutputManager):
         super().__init__(logger, output_manager)
-        self.agent_symbols: list[Quiver] = []
+        self.agent_quivers: list[Line3DCollection] = []
         self.agent_colours: list[tuple[float, float, float, float]] = []
 
-    def heading_to_vector(self, heading: float) -> tuple[float, float]:
-        """Convert a heading angle (in radians) to a 2D unit vector."""
-        import math
-
-        return (math.cos(heading), math.sin(heading))
+    def angles_to_orientation_vector(
+        self,
+        attack_angle: float,
+        azimuth_angle: float,
+        roll_angle: float,
+        length: float = 1.0,
+    ) -> tuple[float, float, float]:
+        """Converts orientation angles to a 3D vector."""
+        # This is a simplified model for orientation visualization.
+        # It assumes attack angle is pitch and azimuth is yaw. Roll is not directly used for the vector direction.
+        u = length * math.cos(attack_angle) * math.cos(azimuth_angle)
+        v = length * math.cos(attack_angle) * math.sin(azimuth_angle)
+        w = length * math.sin(attack_angle)
+        return u, v, w
 
     def create(self):
         num_agents = len(self.output_manager.agent_paths)
-
-        # Assign unique colors to agents
         colours = plt.cm.get_cmap("tab10", num_agents)
 
-        # Create a circle for each agent at its starting position
         for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
-            vx, vy = self.heading_to_vector(agent_path[0][0])
-
-            symbol = self.ax.quiver(
-                agent_path[0][1][0],
-                agent_path[0][1][1],
-                vx,
-                vy,
-                color=colours(agent_idx),
-                label=f"Agent {agent_idx}",
-                zorder=5,  # ensure circles are on top
+            # Quiver for orientation
+            pos, attack_angle, azimuth_angle, roll_angle = agent_path[0]
+            u, v, w = self.angles_to_orientation_vector(
+                attack_angle, azimuth_angle, roll_angle, length=500
             )
 
-            self.agent_symbols.append(symbol)
+            quiver = self.ax.quiver(
+                [pos[0]],
+                [pos[1]],
+                [pos[2]],
+                [u],
+                [v],
+                [w],
+                color=colours(agent_idx),
+                arrow_length_ratio=0.3,
+                label=f"Agent {agent_idx}",
+            )
+            self.agent_quivers.append(quiver)
             self.agent_colours.append(colours(agent_idx))
 
         self.ax.legend()
 
-    def _update(self, frame: int) -> list[Quiver]:
-        updated_symbols: list[Quiver] = []
+    def _update(self, frame: int) -> list[Artist]:
+        updated_artists = []
 
         for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
             if frame < len(agent_path):
-                # Update position
-                self.agent_symbols[agent_idx].set_offsets(
-                    [agent_path[frame][1][0], agent_path[frame][1][1]]
+                # Quiver update
+                pos, attack_angle, azimuth_angle, roll_angle = agent_path[frame]
+                u, v, w = self.angles_to_orientation_vector(
+                    attack_angle, azimuth_angle, roll_angle, length=500
                 )
 
-                # Update heading
-                vx, vy = self.heading_to_vector(agent_path[frame][0])
-                self.agent_symbols[agent_idx].set_UVC(vx, vy)
+                segments = [
+                    [[pos[0], pos[1], pos[2]], [pos[0] + u, pos[1] + v, pos[2] + w]]
+                ]
+                self.agent_quivers[agent_idx]._segments3d = segments
+                updated_artists.append(self.agent_quivers[agent_idx])
 
-            updated_symbols.append(self.agent_symbols[agent_idx])
-
-        return updated_symbols
+        return updated_artists
 
     def save(self):
         os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
-
         filename = f"{VideoConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d-%H:%M:%S')}.{VideoConfig.OUTPUT_EXTENSION}"
         filepath = os.path.join(OutputConfig.OUTPUT_DIRECTORY, filename)
 
         ani = animation.FuncAnimation(
             self.fig,
             self._update,
-            blit=True,
+            blit=False,
             frames=len(self.output_manager.agent_paths[0]),
             repeat=False,
-            cache_frame_data=False,
         )
         ani.save(
             filepath,
@@ -87,5 +99,4 @@ class VideoOutput(BaseOutput):
             fps=SimulationConfig.STEPS_PER_SECOND,
             dpi=OutputConfig.DPI,
         )
-
         self.logger.info(f"Video saved to {filepath}")

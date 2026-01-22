@@ -125,13 +125,13 @@ class Simulation:
         self.timestep = 0
 
         # initialise agent values
-        # self.positions: Vectors = np.random.rand(N, 3) * [
-        #     SimulationConfig.WIDTH,
-        #     SimulationConfig.LENGTH,
-        #     SimulationConfig.HEIGHT,
-        # ]
-        self.positions: Vectors = np.array([[1000, 1000, 6500], [9000, 9000, 6500]])
-        # self.velocities: Scalars = np.random.uniform(-25, 25, size=(N,))
+        self.positions: Vectors = np.random.rand(N, 3) * [
+            SimulationConfig.WIDTH,
+            SimulationConfig.LENGTH,
+            SimulationConfig.HEIGHT,
+        ]
+        # self.positions: Vectors = np.array([[1000, 1000, 6500], [9000, 9000, 6500]])
+        self.velocities: Scalars = np.random.uniform(-25, 25, size=(N,))
         self.velocities = np.zeros(N) + 0.001
         self.attack_angles: Scalars = np.zeros(N)
         self.flight_path_angles: Scalars = np.zeros(N)

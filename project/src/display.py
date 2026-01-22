@@ -99,9 +99,9 @@ class Display:
         # Predefined color palette for agents
         agent_colors = ["red", "green", "blue", "magenta", "cyan", "white"]
 
-        headings = (-simulation.headings) % (2 * np.pi)
+        headings = (-simulation.azimuth_angles) % (2 * np.pi)
         indices = np.floor((headings + np.pi / 8) / (2 * np.pi) * 8).astype(int) % 8
-        agent_symbols = [symbols[i] for i in indices]
+        agent_symbols: list[str] = [symbols[i] for i in indices]
 
         # --- Grid Logic ---
         grid_size = DisplayConfig.MAP_HEIGHT
@@ -115,7 +115,7 @@ class Display:
         )
 
         # Use enumerate to get a stable index for each agent
-        for i, (pos, sym) in enumerate(zip(simulation.positions, agent_symbols)):
+        for i, (pos, sym) in enumerate(zip(simulation.positions[:, :2], agent_symbols)):
             x = int(max(0, min(grid_size - 1, pos[0] * scale_x)))
             y = int(max(0, min(grid_size - 1, pos[1] * scale_y)))
 

@@ -1,11 +1,11 @@
-from matplotlib.lines import Line2D  # Import Line2D
-from logging import Logger
-from configs import output as OutputConfig
-from configs.outputs import plot as PlotConfig
-from outputs.base import OutputManager, BaseOutput
 import os
 from datetime import datetime
 import numpy as np
+from matplotlib.lines import Line2D
+from outputs.base import BaseOutput, OutputManager
+from logging import Logger
+from configs import output as OutputConfig
+from configs.outputs import plot as PlotConfig
 
 
 class PlotOutput(BaseOutput):
@@ -13,38 +13,34 @@ class PlotOutput(BaseOutput):
         super().__init__(logger, output_manager)
 
     def create(self):
-        for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
-            positions = [pos for _, pos in agent_path]
-            path = np.stack(positions)
+        linestyles = ["--", "-.", ":", "-"]
 
-            if len(agent_path) > 1:
-                # Plot the path line
+        for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
+            # Extract positions and stack into (N,3) array
+            positions = np.stack([pos for pos, _, _, _ in agent_path])
+
+            if len(positions) > 1:
+                # Plot the path
                 self.ax.plot(
-                    path[:, 0],
-                    path[:, 1],
+                    *positions.T,
                     label=f"Agent {agent_idx}",
                     linewidth=1.5,
+                    linestyle=linestyles[agent_idx % len(linestyles)],
                 )
 
-                # Plot start and end circles
-                self.ax.plot(
-                    path[0, 0],
-                    path[0, 1],
-                    "o",
-                    markerfacecolor="black",
-                    markeredgecolor="black",
-                    markersize=8,
-                )
-                self.ax.plot(
-                    path[-1, 0],
-                    path[-1, 1],
-                    "o",
-                    markerfacecolor="white",
-                    markeredgecolor="black",
-                    markersize=8,
-                )
+            self.ax.scatter(
+                *positions[0], color="black", s=50, marker="o", label="_nolegend_"
+            )  # start
+            self.ax.scatter(
+                *positions[-1],
+                facecolor="white",
+                edgecolor="black",
+                s=50,
+                marker="o",
+                label="_nolegend_",
+            )  # end
 
-        # Add legend and draw plot
+        # Add custom start/end legend
         self.add_legend()
         self.fig.canvas.draw_idle()
 
