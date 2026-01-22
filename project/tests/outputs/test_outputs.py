@@ -21,15 +21,17 @@ def test_add_agent_data(mock_video_output: MagicMock, mock_plot_output: MagicMoc
     mock_logger = Mock()
     manager = OutputManager(logger=mock_logger)
     simulation = Simulation(N=2)
-    simulation.positions = np.array([[10.0, 10.0], [20.0, 20.0]])
-    simulation.headings = np.array([0.0, 1.0])
+    simulation.positions = np.array([[10.0, 10.0, 10.0], [20.0, 20.0, 20.0]])
+    simulation.attack_angles = np.array([0.0, 1.0])
+    simulation.azimuth_angles = np.array([0.0, 1.0])
+    simulation.roll_angles = np.array([0.0, 1.0])
 
     manager.add_agent_data(simulation)
 
     assert len(manager.agent_paths) == 2
     assert len(manager.agent_paths[0]) == 1
-    assert manager.agent_paths[0][0][0] == 0.0
-    assert np.array_equal(manager.agent_paths[0][0][1], np.array([10.0, 10.0]))
+    assert np.array_equal(manager.agent_paths[0][0][0], np.array([10.0, 10.0, 10.0]))
+    assert manager.agent_paths[0][0][1] == 0.0
 
 
 @patch("outputs.plot.PlotOutput")

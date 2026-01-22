@@ -3,6 +3,7 @@ from display import Display
 from simulation.simulation import Simulation
 from rich.console import Console
 from configs import simulation as SimulationConfig
+import numpy as np
 
 
 @patch("display.Live")
@@ -57,6 +58,19 @@ def test_make_values():
     simulation = Simulation(N=2)
     panel = display.make_values(simulation)
     assert "Timestep: 0" in str(panel.renderable)
+
+
+def test_make_map():
+    console = Console(record=True)
+    display = Display(console)
+    simulation = Simulation(N=2)
+    simulation.positions = np.array([[10, 10, 10], [20, 20, 20]])
+    simulation.azimuth_angles = np.array([0, np.pi / 2])
+    panel = display.make_map(simulation)
+    # This is a very basic test to check that the map is generated without errors
+    # and that the title is correct. A more comprehensive test would require
+    # parsing the rendered output, which is complex.
+    assert "Simulation Preview" in str(panel.title)
 
 
 @patch("display.SystemMetrics.query_cpu_usage", return_value=50.0)

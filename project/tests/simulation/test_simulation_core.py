@@ -4,54 +4,47 @@ import numpy as np
 
 
 def test_simulation_initialization():
-    mock_logger = Mock()
-    manager = SimulationManager(logger=mock_logger)
-
-    assert manager.logger == mock_logger
-    assert isinstance(manager.simulation, Simulation)
-    assert manager.simulation.N > 0
-    assert isinstance(manager.simulation.positions, np.ndarray)
-    assert isinstance(manager.simulation.velocities, np.ndarray)
-    assert isinstance(manager.simulation.headings, np.ndarray)
+    simulation = Simulation(N=2)
+    assert simulation.N == 2
+    assert simulation.timestep == 0
+    assert simulation.positions.shape == (2, 3)
+    assert simulation.velocities.shape == (2,)
 
 
 def test_simulation_step():
-    mock_logger = Mock()
-    manager = SimulationManager(logger=mock_logger)
+    simulation = Simulation(N=2)
+    initial_positions = simulation.positions.copy()
 
-    initial_timestep = manager.simulation.timestep
-    initial_positions = manager.simulation.positions.copy()
-    initial_velocities = manager.simulation.velocities.copy()
+    with patch("simulation.simulation.MDP") as mock_mdp:
+        # Mock the MDP find_action to return a fixed action
+        mock_mdp.return_value.find_action.return_value = (1.0, 0.1, 0.1)
+        simulation.step()
 
-    manager.simulation.step()
-
-    assert manager.simulation.timestep == initial_timestep + 1
-    assert not np.array_equal(manager.simulation.positions, initial_positions)
-    assert not np.array_equal(manager.simulation.velocities, initial_velocities)
+    assert simulation.timestep == 1
+    assert not np.array_equal(simulation.positions, initial_positions)
 
 
-@patch("simulation.simulation.SimulationManager.run")
-def test_simulation_run(mock_run: MagicMock):
+@patch("simulation.simulation.Simulation.step")
+def test_simulation_manager_run(mock_step: MagicMock):
     mock_logger = Mock()
     manager = SimulationManager(logger=mock_logger)
     mock_callback = Mock()
 
-    # To prevent an infinite loop, we need to stop the simulation after a few steps.
-    # We can do this by raising an exception in the mock_step function after a few calls.
+    # To prevent an infinite loop, we can stop the simulation after a few steps.
     def side_effect(*args, **kwargs):
-        # The callback is the first argument of the run method
-        callback = args[0]
-        for i in range(6):
-            callback(manager.simulation)
-        raise StopIteration
+        if manager.simulation.timestep >= 5:
+            raise StopIteration
+        # Manually increment timestep to simulate progression
+        manager.simulation.timestep += 1
 
-    mock_run.side_effect = side_effect
+    mock_step.side_effect = side_effect
 
     try:
+        # The callback is passed directly to the run method
         manager.run(mock_callback)
     except StopIteration:
         pass
 
-    assert mock_run.call_count == 1
-    assert mock_callback.call_count == 6
+    # The number of calls to the callback should be 5, as it's called after each step
+    assert mock_callback.call_count == 5
     mock_callback.assert_called_with(manager.simulation)
