@@ -82,9 +82,15 @@ class VideoOutput(BaseOutput):
         return updated_artists
 
     def save(self):
+        time = datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
         os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
-        filename = f"{VideoConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d-%H:%M:%S')}.{VideoConfig.OUTPUT_EXTENSION}"
-        filepath = os.path.join(OutputConfig.OUTPUT_DIRECTORY, filename)
+        os.makedirs(f"{OutputConfig.OUTPUT_DIRECTORY}/{time}", exist_ok=True)
+
+        filename = f"{VideoConfig.OUTPUT_FILENAME}.{VideoConfig.OUTPUT_EXTENSION}"
+        filepath = os.path.join(
+            f"{OutputConfig.OUTPUT_DIRECTORY}/{time}",
+            filename,
+        )
 
         ani = animation.FuncAnimation(
             self.fig,

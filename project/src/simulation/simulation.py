@@ -125,13 +125,12 @@ class Simulation:
         self.timestep = 0
 
         # initialise agent values
-        self.positions: Vectors = np.random.rand(N, 3) * [
-            SimulationConfig.WIDTH,
-            SimulationConfig.LENGTH,
-            SimulationConfig.HEIGHT,
-        ]
-        # self.positions: Vectors = np.array([[1000, 1000, 6500], [9000, 9000, 6500]])
-        self.velocities: Scalars = np.random.uniform(-25, 25, size=(N,))
+        # self.positions: Vectors = np.random.rand(N, 3) * [
+        #     SimulationConfig.WIDTH,
+        #     SimulationConfig.LENGTH,
+        #     SimulationConfig.HEIGHT,
+        # ]
+        self.positions: Vectors = np.array([[5000, 100, 6500], [5000, 9900, 6500]])
         self.velocities = np.zeros(N) + 0.001
         self.attack_angles: Scalars = np.zeros(N)
         self.flight_path_angles: Scalars = np.zeros(N)
@@ -139,9 +138,9 @@ class Simulation:
         self.azimuth_angles: Scalars = np.zeros(N)
 
         # agent inputs
-        self.thrusts: Scalars = np.zeros((N,))
-        self.attack_angle_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
-        self.roll_angle_rates: Scalars = np.random.uniform(-1, 1, size=(N,))
+        self.thrusts: Scalars = np.zeros(N)
+        self.attack_angle_rates: Scalars = np.zeros(N)
+        self.roll_angle_rates: Scalars = np.zeros(N)
 
     def step(self):
         new_thrusts = np.zeros(self.N)
