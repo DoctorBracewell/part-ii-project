@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from logging import Logger
@@ -35,11 +36,23 @@ class OutputManager:
                 (position, attack_angle, azimuth_angle, roll_angle)
             )
 
-    def create_outputs(self):
+    def create_outputs(self, visualisation: bool):
+        from outputs.visualisation import VisualisationOutput
+
+        if visualisation:
+            self.outputs.append(VisualisationOutput(self.logger, self))
+
         for output in self.outputs:
             output.setup_plot_axes()
             output.create()
             output.save()
+
+        if visualisation:
+            from PyQt5.QtWidgets import QApplication
+
+            app = QApplication([])
+            app.exec_()
+            os._exit(0)
 
 
 class BaseOutput(ABC):

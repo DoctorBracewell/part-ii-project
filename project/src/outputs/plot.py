@@ -72,11 +72,13 @@ class PlotOutput(BaseOutput):
         )
 
     def save(self):
+        time = datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
         os.makedirs(OutputConfig.OUTPUT_DIRECTORY, exist_ok=True)
+        os.makedirs(f"{OutputConfig.OUTPUT_DIRECTORY}/{time}", exist_ok=True)
 
-        filename = f"{PlotConfig.OUTPUT_FILENAME}_{datetime.now().strftime('%Y.%m.%d-%H:%M:%S')}.{PlotConfig.OUTPUT_EXTENSION}"
+        filename = f"{PlotConfig.OUTPUT_FILENAME}.{PlotConfig.OUTPUT_EXTENSION}"
         filepath = os.path.join(
-            OutputConfig.OUTPUT_DIRECTORY,
+            f"{OutputConfig.OUTPUT_DIRECTORY}/{time}",
             filename,
         )
 
