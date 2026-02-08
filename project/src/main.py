@@ -1,14 +1,18 @@
 import logging
+import os
 
 from rich.logging import RichHandler
 from rich.console import Console
+from typing import Callable
 
 from argparse import ArgumentParser
+from threading import Thread
 
 from display import Display
-from simulation.simulation import SimulationManager
+from simulation.simulation import Simulation, SimulationManager
 
 from outputs.base import OutputManager
+from simulation.visualisation import VisualisationManager
 
 # Logging
 console = Console()
@@ -50,16 +54,35 @@ parser.add_argument(
 def main():
     output_manager = OutputManager(logger)
     simulation_manager = SimulationManager(logger)
+    visualisation_manager = VisualisationManager(
+        logger, simulation_manager.simulation.N
+    )
     args = parser.parse_args()
 
     try:
         logger.info("Simulation begun with t=0")
 
-        if args.display:
-            with Display(console) as display:
-                simulation_manager.run(display.update, output_manager.add_agent_data)
-        else:
-            simulation_manager.run(output_manager.add_agent_data)
+        def run_simulation():
+            callbacks: list[Callable[[Simulation], None]] = []
+            if args.outputs:
+                callbacks.append(output_manager.add_agent_data)
+            if args.visualisation:
+                callbacks.append(visualisation_manager.update)
+
+            if args.display:
+                with Display(console) as display:
+                    simulation_manager.run(display.update, *callbacks)
+            else:
+                simulation_manager.run(*callbacks)
+
+        sim_thread = Thread(target=run_simulation, daemon=True)
+        sim_thread.start()
+
+        from PyQt5.QtWidgets import QApplication
+
+        app = QApplication([])
+        app.exec_()
+        os._exit(0)
 
     except KeyboardInterrupt:
         pass
@@ -71,7 +94,7 @@ def main():
 
         if args.outputs:
             try:
-                output_manager.create_outputs(args.visualisation)
+                output_manager.create_outputs()
             except KeyboardInterrupt:
                 pass
 
