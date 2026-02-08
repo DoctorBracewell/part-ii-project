@@ -41,7 +41,7 @@ class VideoOutput(BaseOutput):
 
         for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
             # Quiver for orientation
-            pos, attack_angle, azimuth_angle, roll_angle = agent_path[0]
+            pos, attack_angle, _, azimuth_angle, roll_angle = agent_path[0]
             u, v, w = self.angles_to_orientation_vector(
                 attack_angle, azimuth_angle, roll_angle, length=500
             )
@@ -68,7 +68,7 @@ class VideoOutput(BaseOutput):
         for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
             if frame < len(agent_path):
                 # Quiver update
-                pos, attack_angle, azimuth_angle, roll_angle = agent_path[frame]
+                pos, attack_angle, _, azimuth_angle, roll_angle = agent_path[frame]
                 u, v, w = self.angles_to_orientation_vector(
                     attack_angle, azimuth_angle, roll_angle, length=500
                 )

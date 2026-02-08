@@ -16,7 +16,7 @@ class OutputManager:
         from outputs.video import VideoOutput
 
         self.logger = logger
-        self.agent_paths: list[list[tuple[Vector, Scalar, Scalar, Scalar]]] = [
+        self.agent_paths: list[list[tuple[Vector, Scalar, Scalar, Scalar, Scalar]]] = [
             [] for _ in range(SimulationConfig.AGENTS)
         ]
         self.outputs: list[BaseOutput] = [
@@ -29,11 +29,12 @@ class OutputManager:
         for agent_idx in range(simulation.N):
             position: Vector = simulation.positions[agent_idx]
             attack_angle: Scalar = simulation.attack_angles[agent_idx]
+            flight_path_angle: Scalar = simulation.flight_path_angles[agent_idx]
             azimuth_angle: Scalar = simulation.azimuth_angles[agent_idx]
             roll_angle: Scalar = simulation.roll_angles[agent_idx]
 
             self.agent_paths[agent_idx].append(
-                (position, attack_angle, azimuth_angle, roll_angle)
+                (position, attack_angle, flight_path_angle, azimuth_angle, roll_angle)
             )
 
     def create_outputs(self, visualisation: bool):

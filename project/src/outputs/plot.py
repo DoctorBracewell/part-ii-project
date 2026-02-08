@@ -17,7 +17,7 @@ class PlotOutput(BaseOutput):
 
         for agent_idx, agent_path in enumerate(self.output_manager.agent_paths):
             # Extract positions and stack into (N,3) array
-            positions = np.stack([pos for pos, _, _, _ in agent_path])
+            positions = np.stack([pos for pos, _, _, _, _ in agent_path])
 
             if len(positions) > 1:
                 # Plot the path

@@ -12,6 +12,7 @@ from configs.outputs import visualisation as VisualisationConfig
 from configs import simulation as SimulationConfig
 
 from outputs.base import OutputManager, BaseOutput
+from simulation.simulation import Scalar
 
 
 class VisualisationOutput(BaseOutput):
@@ -65,7 +66,7 @@ class VisualisationOutput(BaseOutput):
 
         num_agents = len(self.output_manager.agent_paths)
         for i in range(num_agents):
-            arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=800)
+            arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=200)
             actor = self.plotter.add_mesh(
                 arrow,
                 color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
@@ -127,8 +128,20 @@ class VisualisationOutput(BaseOutput):
         for i, actor in enumerate(self.actors):
             agent_data = self.output_manager.agent_paths[i][t]
             actor.SetPosition(agent_data[0])  # type: ignore
-            actor.SetOrientation(
-                np.rad2deg(agent_data[1]), -np.rad2deg(agent_data[2]), 0.0
-            )
+            actor.SetOrientation(*get_pyvista_orientation(*agent_data[1:5]))
 
         self.plotter.render()
+
+
+def get_pyvista_orientation(
+    attack_angle: Scalar,
+    flight_path_angle: Scalar,
+    azimuth_angle: Scalar,
+    roll_angle: Scalar,
+) -> tuple[float, float, float]:
+    pitch = flight_path_angle + attack_angle
+    pitch_deg = np.rad2deg(pitch)
+    yaw_deg = np.rad2deg(azimuth_angle)
+    roll_deg = np.rad2deg(roll_angle)
+
+    return (pitch_deg, roll_deg, yaw_deg)

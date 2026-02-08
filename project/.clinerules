@@ -1,4 +1,4 @@
-# AI Helper Development Rules for 'understanding-quantum-architecture-project'
+# AI Helper Development Rules for 'continuous pursuit-evasion with aerodynamic constraints'
 
 ## General Guidelines:
 - **Command Execution Directory**: Always execute commands from within the `project/` folder. Ensure to `cd project/` before running any commands.
