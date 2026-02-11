@@ -2,8 +2,10 @@ from logging import Logger
 from typing import Callable
 import numpy as np
 import numpy.typing as npt
+from collections import deque
 
 from configs import simulation as SimulationConfig
+from configs import visualisation as VisualisationConfig
 from configs import mdp as MDPConfig
 from simulation.mdp import MDP
 
@@ -50,9 +52,13 @@ def step_agents(
         nf * np.cos(roll_angles) - np.cos(flight_path_angles)
     )
     flight_path_angles = flight_path_angles + flight_path_angles_rates * dt
+    flight_path_angles = np.clip(
+        flight_path_angles, -np.pi / 2 + 1e-3, np.pi / 2 - 1e-3
+    )
 
     azimuth_angles_rates = g * (
-        (nf * np.sin(roll_angles)) / (velocities * np.cos(flight_path_angles))
+        (nf * np.sin(roll_angles))
+        / (velocities * np.clip(np.cos(flight_path_angles), 1e-3, None))
     )
     azimuth_angles = azimuth_angles + azimuth_angles_rates * dt
 
@@ -130,19 +136,29 @@ class Simulation:
         #     SimulationConfig.LENGTH,
         #     SimulationConfig.HEIGHT,
         # ]
-        self.positions: Vectors = np.array([[5000, 100, 6500], [5000, 9900, 6500]])
-        self.velocities = np.zeros(N) + 0.001
+        self.positions: Vectors = np.array([[5000, 4000, 6500], [5000, 6000, 6500]])
+        self.velocities = np.zeros(N) + 250
         self.attack_angles: Scalars = np.zeros(N)
         self.flight_path_angles: Scalars = np.zeros(N)
         self.roll_angles: Scalars = np.zeros(N)
-        self.azimuth_angles: Scalars = np.zeros(N)
+        self.azimuth_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
 
         # agent inputs
         self.thrusts: Scalars = np.zeros(N)
         self.attack_angle_rates: Scalars = np.zeros(N)
         self.roll_angle_rates: Scalars = np.zeros(N)
 
-    def step(self):
+        # capturing
+        self.position_history: list[deque[Vectors]] = [
+            deque(maxlen=SimulationConfig.CAPTURE_POINT_STEPS + 1)
+            for _ in range(self.N)
+        ]
+        self.capture_points: Vectors = self.positions.copy() + np.array(
+            [[0, -250, 0], [0, -250, 0]]
+        )
+        self.capture_buffer: Vectors = np.zeros((self.N, self.N), dtype=int)
+
+    def step(self) -> int:
         new_thrusts = np.zeros(self.N)
         new_attack_angle_rates = np.zeros(self.N)
         new_roll_angle_rates = np.zeros(self.N)
@@ -209,8 +225,52 @@ class Simulation:
             )
         )
 
-        # increase timestep
         self.timestep += 1
+        return self.capturing()
+
+    def capturing(self) -> int:
+        # Update capture points
+        for i in range(self.N):
+            self.position_history[i].append(self.positions[i].copy())
+
+            if len(self.position_history[i]) < SimulationConfig.CAPTURE_POINT_STEPS + 1:
+                self.capture_points[i] = self.positions[i].copy()
+            else:
+                self.capture_points[i] = self.position_history[i][0]
+
+        # Check capturing
+        for pursuer in range(self.N):
+            for evader in range(self.N):
+                if pursuer == evader:
+                    continue
+
+                distance_check = (
+                    np.sum((self.positions[pursuer] - self.capture_points[evader]) ** 2)
+                    < SimulationConfig.CAPTURE_RADIUS_SQUARED
+                )
+                velocity_check = np.arccos(
+                    np.clip(
+                        np.sin(self.flight_path_angles[pursuer])
+                        * np.sin(self.flight_path_angles[evader])
+                        + np.cos(self.flight_path_angles[pursuer])
+                        * np.cos(self.flight_path_angles[evader])
+                        * np.cos(
+                            self.azimuth_angles[pursuer] - self.azimuth_angles[evader]
+                        ),
+                        -1.0,
+                        1.0,
+                    )
+                ) <= np.deg2rad(60)
+
+                if distance_check and velocity_check:
+                    self.capture_buffer[evader][pursuer] += 1
+                else:
+                    self.capture_buffer[evader][pursuer] = 0
+
+                if self.capture_buffer[evader][pursuer] >= 30:
+                    return evader
+
+        return -1
 
 
 class SimulationManager:
@@ -223,9 +283,13 @@ class SimulationManager:
 
     def run(self, *callbacks: Callable[[Simulation], None]):
         while True:
-            self.logger.info(self.simulation.positions)
-            self.simulation.step()
-            self.logger.info(self.simulation.positions)
+            captured = self.simulation.step()
+
+            if captured != -1:
+                self.logger.info(
+                    f"Agent {captured} ({VisualisationConfig.COLOURS[captured % len(VisualisationConfig.COLOURS)]}) captured!"
+                )
+                break
 
             for callback in callbacks:
                 callback(self.simulation)

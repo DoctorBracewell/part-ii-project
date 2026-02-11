@@ -84,10 +84,11 @@ class Display:
         real_time = datetime.now().timestamp() - self.start_time
         agent_count = simulation.N
         hard_deck = SimulationConfig.HARD_DECK
+        capture_buffer = simulation.capture_buffer
 
         return Panel(
             self.console.render_str(
-                f"Timestep: {timestep}\nSimulation Time: {simulation_time:.3f}s\nReal Time: {real_time:.3f}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}"
+                f"Timestep: {timestep}\nSimulation Time: {simulation_time:.3f}s\nReal Time: {real_time:.3f}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}\nCapture Buffer: {capture_buffer}"
             ),
             title="[bold]Simulation Status[/bold]",
             title_align="left",
