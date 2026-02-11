@@ -75,14 +75,17 @@ def main():
             else:
                 simulation_manager.run(*callbacks)
 
-        sim_thread = Thread(target=run_simulation, daemon=True)
-        sim_thread.start()
+        if args.visualisation:
+            sim_thread = Thread(target=run_simulation, daemon=True)
+            sim_thread.start()
 
-        from PyQt5.QtWidgets import QApplication
+            from PyQt5.QtWidgets import QApplication
 
-        app = QApplication([])
-        app.exec_()
-        os._exit(0)
+            app = QApplication([])
+            app.exec_()
+            os._exit(0)
+        else:
+            run_simulation()
 
     except KeyboardInterrupt:
         pass

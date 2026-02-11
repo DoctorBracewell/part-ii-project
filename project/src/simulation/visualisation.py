@@ -7,7 +7,7 @@ import os
 import numpy as np
 from PyQt5 import QtWidgets, QtCore
 
-from configs.outputs import visualisation as VisualisationConfig
+from configs import visualisation as VisualisationConfig
 from configs import simulation as SimulationConfig
 
 from simulation.simulation import Simulation, Scalar
@@ -19,7 +19,8 @@ class VisualisationManager:
         self.logger = logger
 
         self.plotter = pvqt.BackgroundPlotter(window_size=(750, 750))
-        self.actors: list[pv.Actor] = []
+        self.planes: list[pv.Actor] = []
+        self.capture_points: list[pv.Actor] = []
 
         self.setup_scene(agent_count)
 
@@ -51,26 +52,37 @@ class VisualisationManager:
 
         for i in range(agent_count):
             arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=200)
-            actor = self.plotter.add_mesh(
+            plane = self.plotter.add_mesh(
                 arrow,
                 color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
             )
-            self.actors.append(actor)
+            self.planes.append(plane)
+
+            sphere = pv.Sphere(radius=30, center=(0, 0, 0))
+            capture_point = self.plotter.add_mesh(  # type: ignore
+                sphere,
+                color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
+            )
+            self.capture_points.append(capture_point)
 
     def update(self, simulation: Simulation):
-        for i, actor in enumerate(self.actors):
+        for i, plane in enumerate(self.planes):
             position = simulation.positions[i]
             attack_angle = simulation.attack_angles[i]
             flight_path_angle = simulation.flight_path_angles[i]
             azimuth_angle = simulation.azimuth_angles[i]
             roll_angle = simulation.roll_angles[i]
 
-            actor.SetPosition(position)  # type: ignore
-            actor.SetOrientation(
+            plane.SetPosition(position)  # type: ignore
+            plane.SetOrientation(
                 *get_pyvista_orientation(
                     attack_angle, flight_path_angle, azimuth_angle, roll_angle
                 )
             )
+
+        for i, capture_point in enumerate(self.capture_points):
+            position = simulation.capture_points[i]
+            capture_point.SetPosition(position)  # type: ignore
 
         self.plotter.render()
 
