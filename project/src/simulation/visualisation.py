@@ -21,6 +21,7 @@ class VisualisationManager:
         self.plotter = pvqt.BackgroundPlotter(window_size=(750, 750))
         self.planes: list[pv.Actor] = []
         self.capture_points: list[pv.Actor] = []
+        self.texts: list[pv.Actor] = []
 
         self.setup_scene(agent_count)
 
@@ -51,9 +52,13 @@ class VisualisationManager:
         self.plotter.add_mesh(z_axis, color="blue", line_width=2)
 
         for i in range(agent_count):
-            arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=200)
+            # arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=200)
+            model = pv.read("src/assets/jet.stl")
+            model.scale(3, inplace=True)
+            model.rotate_z(90, inplace=True)
+
             plane = self.plotter.add_mesh(
-                arrow,
+                model,
                 color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
             )
             self.planes.append(plane)
@@ -63,7 +68,7 @@ class VisualisationManager:
                 sphere,
                 color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
             )
-            self.capture_points.append(capture_point)
+            # self.capture_points.append(capture_point)
 
     def update(self, simulation: Simulation):
         for i, plane in enumerate(self.planes):
@@ -98,4 +103,4 @@ def get_pyvista_orientation(
     yaw_deg = np.rad2deg(azimuth_angle)
     roll_deg = np.rad2deg(roll_angle)
 
-    return (pitch_deg, roll_deg, yaw_deg)
+    return (roll_deg, -pitch_deg, yaw_deg)

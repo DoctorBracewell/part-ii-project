@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 # Actions
 type Action = NDArray[np.float64]
-thrusts = np.arange(0.0, 7.0, 1.0, dtype=np.float64)
+thrusts = np.arange(0.0, 10.0, 2.0, dtype=np.float64)
 attack_angles = np.arange(-0.5, 0.5, 0.1, dtype=np.float64)
 roll_angles = np.arange(-1, 1, 0.2, dtype=np.float64)
 
@@ -80,15 +80,17 @@ class MDP:
                 self.flight_path_angles[self.i : self.i + 1],
                 self.roll_angles[self.i : self.i + 1],
                 self.azimuth_angles[self.i : self.i + 1],
-                action[0],
-                action[1],
-                action[2],
+                action[0:1],
+                action[1:2],
+                action[2:3],
             )
             self_projected_position = results[0][0]
+            self_projected_velocity = results[1][0]
 
             # Calculate reward from resulting position
             rewards[i] = self.calculate_reward(
                 self_projected_position,
+                self_projected_velocity,
                 other_projected_positions,
                 other_projected_velocities,
             )
@@ -98,48 +100,57 @@ class MDP:
         return best_action
 
     def calculate_reward(
-        self, self_position: Vector, other_positions: Vectors, other_velocities: Vectors
+        self,
+        self_position: Vector,
+        self_velocity: Vectors,
+        other_positions: Vectors,
+        other_velocities: Vectors,
     ) -> float:
-        best_positive_reward = positive_maximum(self_position, other_positions)
-        best_negative_reward = negative_maximum(
-            self_position, other_positions, other_velocities
+        best_positive_reward = positive_maximum(
+            self_position, self_velocity, other_positions, other_velocities
         )
+        # best_negative_reward = negative_maximum(
+        #     self_position, other_positions, other_velocities
+        # )
 
-        total_reward = best_positive_reward - best_negative_reward
+        total_reward = best_positive_reward  # - best_negative_reward
         return total_reward
 
     def hard_deck_penalty(self):
         return 0.0
 
 
-def positive_maximum(self_position: Vector, other_positions: Vectors) -> float:
-    magnitudes, discounts, positions = positive_parameters(other_positions)
+def positive_maximum(
+    self_position: Vector,
+    self_velocity: Vector,
+    other_positions: Vectors,
+    other_velocities: Vectors,
+) -> float:
+    r = other_positions - self_position
+    v = self_velocity
 
-    distances = np.sqrt(np.sum((positions - self_position) ** 2, axis=1))
-    values = magnitudes * (discounts**distances)
+    d = np.linalg.norm(r, axis=1)
+    R_p = 2000.0
 
-    return np.max(values)
+    r_hat = r / d
+    v_hat = v / np.linalg.norm(v)
 
+    velocity_alignment = np.dot(r_hat, v_hat)
+    # distance_weight = np.exp(-d / R_p)
+    # values = velocity_alignment * distance_weight
 
-def positive_parameters(other_positions: Vectors) -> tuple[Scalars, Scalars, Vectors]:
-    num_rewards = other_positions.shape[0]
-
-    magnitudes = np.ones(num_rewards) * 200
-    discounts = np.ones(num_rewards) * 0.999
-    positions = other_positions
-
-    return magnitudes, discounts, positions
+    return np.max(velocity_alignment)
 
 
 def negative_maximum(
     self_position: Vector, other_positions: Vectors, other_velocities: Vectors
 ) -> float:
-    magnitudes, discounts, positions, radii_squared = negative_parameters(
+    magnitudes, discounts, positions, radii = negative_parameters(
         other_positions, other_velocities
     )
 
     distances = np.sqrt(np.sum((positions - self_position) ** 2, axis=1))
-    distances_contained = distances <= radii_squared
+    distances_contained = distances <= radii
     values = distances_contained * magnitudes * (discounts**distances)
 
     # if (
@@ -156,12 +167,12 @@ def negative_maximum(
 def negative_parameters(
     other_positions: Vectors, other_velocities: Vectors
 ) -> tuple[Scalars, Scalars, Vectors, Scalars]:
-    timesteps = np.array([0, 1, 5, 10])
+    timesteps = np.array([1, 5, 10])
     T = len(timesteps)
     N = other_positions.shape[0]
 
-    magnitudes = np.ones(N * T) * 300
-    discounts = np.ones(N * T) * 0.999
+    magnitudes = np.ones(N * T) * 200
+    discounts = np.ones(N * T) * 0.995
     positions = np.empty((N * T, 3))
     radii = np.empty(N * T)
 

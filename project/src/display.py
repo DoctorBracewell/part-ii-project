@@ -27,7 +27,7 @@ class Display:
     def __init__(self, console: Console):
         self.charts_updated_at = 0
         self.start_time = datetime.now().timestamp()
-        self.system_metrics = SystemMetrics()
+        # self.system_metrics = SystemMetrics()
         self.cpu_chart = Chart(colour="red")
         self.mem_chart = Chart(colour="blue")
 
@@ -71,10 +71,10 @@ class Display:
         self.values.update(self.make_values(simulation))
         self.map.update(self.make_map(simulation))
 
-        if datetime.now().timestamp() - self.charts_updated_at > 1:
-            self.charts_updated_at = datetime.now().timestamp()
-            self.cpu.update(self.make_cpu())
-            self.mem.update(self.make_mem())
+        # if datetime.now().timestamp() - self.charts_updated_at > 1:
+        #     self.charts_updated_at = datetime.now().timestamp()
+        #     self.cpu.update(self.make_cpu())
+        #     self.mem.update(self.make_mem())
 
         self.live.refresh()
 
@@ -86,10 +86,24 @@ class Display:
         hard_deck = SimulationConfig.HARD_DECK
         capture_buffer = simulation.capture_buffer
 
+        values = [
+            f"Timestep: {timestep}",
+            f"Simulation Time: {simulation_time:.3f}s",
+            f"Real Time: {real_time:.3f}s",
+            "",
+            f"Agents: {agent_count}",
+            f"Hard Deck: {hard_deck}",
+            f"Capture Buffer: {capture_buffer}",
+            f"Positions: {', '.join([f'({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f})' for pos in simulation.positions])}",
+            f"Speeds: {', '.join([f'{s:.1f}' for s in simulation.speeds])}",
+            f"Thrusts: {', '.join([f'{t:.1f}' for t in simulation.thrusts])}",
+            f"Attack Angles: {', '.join([f'{a:.1f}' for a in simulation.attack_angles])}",
+            f"Roll Angles: {', '.join([f'{r:.1f}' for r in simulation.roll_angles])}",
+            f"Chosen Actions: {', '.join([f'(T: {a[0]:.1f}, AAR: {a[1]:.1f}, RAR: {a[2]:.1f})' for a in simulation.chosen_actions])}",
+        ]
+
         return Panel(
-            self.console.render_str(
-                f"Timestep: {timestep}\nSimulation Time: {simulation_time:.3f}s\nReal Time: {real_time:.3f}s\n\nAgents: {agent_count}\nHard Deck: {hard_deck}\nCapture Buffer: {capture_buffer}"
-            ),
+            self.console.render_str("\n".join(values)),
             title="[bold]Simulation Status[/bold]",
             title_align="left",
         )

@@ -137,16 +137,19 @@ class Simulation:
         #     SimulationConfig.HEIGHT,
         # ]
         self.positions: Vectors = np.array([[5000, 4000, 6500], [5000, 6000, 6500]])
-        self.velocities = np.zeros(N) + 250
+        self.speeds = np.zeros(N) + 0.001
+        self.velocities = np.zeros((N, 3))
         self.attack_angles: Scalars = np.zeros(N)
         self.flight_path_angles: Scalars = np.zeros(N)
         self.roll_angles: Scalars = np.zeros(N)
+        # self.roll_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
         self.azimuth_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
 
         # agent inputs
         self.thrusts: Scalars = np.zeros(N)
         self.attack_angle_rates: Scalars = np.zeros(N)
         self.roll_angle_rates: Scalars = np.zeros(N)
+        self.chosen_actions: Vectors = np.zeros((N, 3))
 
         # capturing
         self.position_history: list[deque[Vectors]] = [
@@ -174,7 +177,7 @@ class Simulation:
         ) = forward_project(
             MDPConfig.FORWARD_PROJECTION_STEPS,
             self.positions,
-            self.velocities,
+            self.speeds,
             self.attack_angles,
             self.flight_path_angles,
             self.roll_angles,
@@ -189,7 +192,7 @@ class Simulation:
             mdp = MDP(
                 i,
                 self.positions,
-                self.velocities,
+                self.speeds,
                 self.attack_angles,
                 self.flight_path_angles,
                 self.roll_angles,
@@ -199,8 +202,11 @@ class Simulation:
                 self.roll_angle_rates,
                 projected_positions,
                 projected_velocities,
+                # self.positions.copy(),
+                # self.velocities.copy(),
             )
             action = mdp.find_action()
+            self.chosen_actions[i] = action
             new_thrusts[i] = action[0]
             new_attack_angle_rates[i] = action[1]
             new_roll_angle_rates[i] = action[2]
@@ -211,10 +217,10 @@ class Simulation:
         self.roll_angle_rates = new_roll_angle_rates
 
         # step each agent with their action and update the state
-        self.positions, _, self.velocities, self.attack_angles, self.flight_path_angles, self.roll_angles, self.azimuth_angles = (  # type: ignore
+        self.positions, self.velocities, self.speeds, self.attack_angles, self.flight_path_angles, self.roll_angles, self.azimuth_angles = (  # type: ignore
             step_agents(
                 self.positions,
-                self.velocities,
+                self.speeds,
                 self.attack_angles,
                 self.flight_path_angles,
                 self.roll_angles,

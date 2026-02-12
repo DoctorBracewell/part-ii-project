@@ -1,5 +1,8 @@
 # AI Helper Development Rules for 'continuous pursuit-evasion with aerodynamic constraints'
 
+## Most Important
+Do NOT ever run a terminal command after your changes. Inform me when you have finished making changes to the source code and I will review the changes before running the project
+
 ## General Guidelines:
 - **Command Execution Directory**: Always execute commands from within the `project/` folder. Ensure to `cd project/` before running any commands.
 - **Virtual Environment**: Always use the `.venv` virtual environment. Source it before development: `source .venv/bin/activate`.
