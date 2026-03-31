@@ -85,6 +85,10 @@ class VisualisationManager:
                 )
             )
 
+            if not simulation.active[i]:
+                plane.GetProperty().SetOpacity(0.2)
+                plane.GetProperty().SetColor(0.5, 0.5, 0.5)
+
         for i, capture_point in enumerate(self.capture_points):
             position = simulation.capture_points[i]
             capture_point.SetPosition(position)  # type: ignore

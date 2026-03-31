@@ -93,7 +93,15 @@ class Display:
             "",
             f"Agents: {agent_count}",
             f"Hard Deck: {hard_deck}",
+            f"Thrust Ratio: {simulation.thrust_ratio}",
+            f"Attack Angle Ratio: {simulation.attack_angle_ratio}",
+            f"Roll Angle Ratio: {simulation.roll_angle_ratio}",
+            f"",
             f"Capture Buffer: {capture_buffer}",
+            f"Distance Check: {simulation.distance_check}",
+            f"Nose Check: {simulation.nose_check}",
+            f"Asymmetry Check: {simulation.asymmetry_check}",
+            f"",
             f"Positions: {', '.join([f'({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f})' for pos in simulation.positions])}",
             f"Speeds: {', '.join([f'{s:.1f}' for s in simulation.speeds])}",
             f"Thrusts: {', '.join([f'{t:.1f}' for t in simulation.thrusts])}",
@@ -134,8 +142,8 @@ class Display:
             x = int(max(0, min(grid_size - 1, pos[0] * scale_x)))
             y = int(max(0, min(grid_size - 1, pos[1] * scale_y)))
 
-            # Assign a stable color based on the agent's unique index
-            color = agent_colors[i % len(agent_colors)]
+            # Assign a stable color based on the agent's unique index; gray if captured
+            color = "bright_black" if not simulation.active[i] else agent_colors[i % len(agent_colors)]
             map_grid[grid_size - 1 - y][x] = self.console.render_str(
                 f"[bold][{color}]{sym}[/{color}][/bold]"
             )

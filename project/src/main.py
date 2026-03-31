@@ -3,13 +3,16 @@ import os
 
 from rich.logging import RichHandler
 from rich.console import Console
-from typing import Callable
 
 from argparse import ArgumentParser
+from contextlib import nullcontext
 from threading import Thread
+from typing import Callable
 
 from display import Display
-from simulation.simulation import Simulation, SimulationManager
+from tune import tune, base
+from simulation.simulation import SimulationManager, Simulation
+from configs import simulation as SimulationConfig
 
 from outputs.base import OutputManager
 from simulation.visualisation import VisualisationManager
@@ -49,32 +52,43 @@ parser.add_argument(
 parser.add_argument(
     "-v", "--visualisation", action="store_true", help="Open interactive visualisation."
 )
+parser.add_argument("--tune", action="store_true", help="Run tuning")
 
 
 def main():
-    output_manager = OutputManager(logger)
     simulation_manager = SimulationManager(logger)
-    visualisation_manager = VisualisationManager(
-        logger, simulation_manager.simulation.N
-    )
+    visualisation_manager = VisualisationManager(logger, SimulationConfig.AGENTS)
     args = parser.parse_args()
 
+    if args.tune:
+        tune(logger)
+        return
+
+    def run_simulation():
+        callbacks: list[Callable[[Simulation], None]] = []
+        if args.visualisation:
+            callbacks.append(visualisation_manager.update)
+
+        output_manager = OutputManager(logger) if args.outputs else None
+        if output_manager:
+            callbacks.append(output_manager.add_agent_data)
+
+        with (Display(console) if args.display else nullcontext()) as display:
+            if display:
+                callbacks.append(display.update)
+
+            simulation_manager.setup(base)
+            steps, captures = simulation_manager.run(*callbacks)
+
+        if output_manager:
+            output_manager.create_outputs()
+
+        if captures:
+            logger.info(f"Captures {captures} by timestep {steps}.")
+        else:
+            logger.info(f"No capture by timestep {steps}.")
+
     try:
-        logger.info("Simulation begun with t=0")
-
-        def run_simulation():
-            callbacks: list[Callable[[Simulation], None]] = []
-            if args.outputs:
-                callbacks.append(output_manager.add_agent_data)
-            if args.visualisation:
-                callbacks.append(visualisation_manager.update)
-
-            if args.display:
-                with Display(console) as display:
-                    simulation_manager.run(display.update, *callbacks)
-            else:
-                simulation_manager.run(*callbacks)
-
         if args.visualisation:
             sim_thread = Thread(target=run_simulation, daemon=True)
             sim_thread.start()
@@ -86,20 +100,8 @@ def main():
             os._exit(0)
         else:
             run_simulation()
-
     except KeyboardInterrupt:
         pass
-
-    finally:
-        logger.info(
-            "Simulation ended with t=%d", simulation_manager.simulation.timestep
-        )
-
-        if args.outputs:
-            try:
-                output_manager.create_outputs()
-            except KeyboardInterrupt:
-                pass
 
 
 if __name__ == "__main__":

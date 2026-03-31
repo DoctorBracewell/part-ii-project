@@ -3,6 +3,8 @@ from typing import Callable
 import numpy as np
 import numpy.typing as npt
 from collections import deque
+from numba import njit, prange
+from typing import TypedDict
 
 from configs import simulation as SimulationConfig
 from configs import visualisation as VisualisationConfig
@@ -15,6 +17,7 @@ type Vectors = npt.NDArray[np.float64]
 type Scalars = npt.NDArray[np.float64]
 
 
+@njit
 def velocity_angles_scalars_to_vectors(
     velocities: Scalars, flight_path_angles: Scalars, azimuth_angles: Scalars
 ) -> Vectors:
@@ -25,6 +28,7 @@ def velocity_angles_scalars_to_vectors(
     return np.stack((vx, vy, vz), axis=-1)
 
 
+@njit
 def step_agents(
     positions: Vectors,
     velocities: Scalars,
@@ -35,30 +39,48 @@ def step_agents(
     thrusts: Scalars,
     attack_angle_rates: Scalars,
     roll_angle_rates: Scalars,
+    velocity_mins: Scalars,
+    velocity_maxs: Scalars,
+    azimuth_rate_mins: Scalars,
+    azimuth_rate_maxs: Scalars,
+    attack_angle_mins: Scalars,
+    attack_angle_maxs: Scalars,
 ) -> tuple[Vectors, Vectors, Scalars, Scalars, Scalars, Scalars, Scalars]:
     dt = 1.0 / SimulationConfig.STEPS_PER_SECOND
-    nf = thrusts * np.sin(attack_angles) + SimulationConfig.L
     g = SimulationConfig.G
 
-    attack_angles = attack_angles + attack_angle_rates * dt
+    attack_angles = np.clip(
+        attack_angles + attack_angle_rates * dt,
+        attack_angle_mins,
+        attack_angle_maxs,
+    )
     roll_angles = roll_angles + roll_angle_rates * dt
+
+    nf = thrusts * np.sin(attack_angles) + SimulationConfig.L
 
     velocities_rates = g * (
         thrusts * np.cos(attack_angles) - np.sin(flight_path_angles)
     )
-    velocities = velocities + velocities_rates * dt
+    velocities = np.clip(
+        velocities + velocities_rates * dt,
+        velocity_mins,
+        velocity_maxs,
+    )
 
     flight_path_angles_rates = (g / velocities) * (
         nf * np.cos(roll_angles) - np.cos(flight_path_angles)
     )
-    flight_path_angles = flight_path_angles + flight_path_angles_rates * dt
     flight_path_angles = np.clip(
-        flight_path_angles, -np.pi / 2 + 1e-3, np.pi / 2 - 1e-3
+        flight_path_angles + flight_path_angles_rates * dt,
+        -np.pi / 2 + 1e-3,
+        np.pi / 2 - 1e-3,
     )
 
-    azimuth_angles_rates = g * (
-        (nf * np.sin(roll_angles))
-        / (velocities * np.clip(np.cos(flight_path_angles), 1e-3, None))
+    azimuth_angles_rates = np.clip(
+        (g * nf * np.sin(roll_angles))
+        / (velocities * np.maximum(np.cos(flight_path_angles), 1e-3)),
+        azimuth_rate_mins,
+        azimuth_rate_maxs,
     )
     azimuth_angles = azimuth_angles + azimuth_angles_rates * dt
 
@@ -78,6 +100,7 @@ def step_agents(
     )
 
 
+@njit
 def forward_project(
     steps: int,
     positions: Vectors,
@@ -89,11 +112,17 @@ def forward_project(
     thrusts: Scalars,
     attack_angle_rates: Scalars,
     roll_angle_rates: Scalars,
+    velocity_mins: Scalars,
+    velocity_maxs: Scalars,
+    azimuth_rate_mins: Scalars,
+    azimuth_rate_maxs: Scalars,
+    attack_angle_mins: Scalars,
+    attack_angle_maxs: Scalars,
 ) -> tuple[Vectors, Vectors, Scalars, Scalars, Scalars, Scalars, Scalars]:
     # forward project
-    velocities_vectors = np.zeros_like(positions)
+    velocities_vectors = np.zeros_like(positions, dtype=np.float64)
 
-    for _ in range(steps):
+    for _ in prange(steps):
         (
             positions,
             velocities_vectors,
@@ -112,6 +141,12 @@ def forward_project(
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            velocity_mins,
+            velocity_maxs,
+            azimuth_rate_mins,
+            azimuth_rate_maxs,
+            attack_angle_mins,
+            attack_angle_maxs,
         )
 
     return (
@@ -126,45 +161,64 @@ def forward_project(
 
 
 class Simulation:
-    def __init__(self, N: int):
+    def __init__(
+        self,
+        N: int,
+        positions: list[list[float]],
+        velocity_mins: list[float],
+        velocity_maxs: list[float],
+        azimuth_rate_mins: list[float],
+        azimuth_rate_maxs: list[float],
+        attack_angle_mins: list[float],
+        attack_angle_maxs: list[float],
+        thrust_ratio: list[float],
+        attack_angle_ratio: list[float],
+        roll_angle_ratio: list[float],
+    ):
         self.N = N
         self.timestep = 0
 
-        # initialise agent values
-        # self.positions: Vectors = np.random.rand(N, 3) * [
-        #     SimulationConfig.WIDTH,
-        #     SimulationConfig.LENGTH,
-        #     SimulationConfig.HEIGHT,
-        # ]
-        self.positions: Vectors = np.array([[5000, 4000, 6500], [5000, 6000, 6500]])
-        self.speeds = np.zeros(N) + 0.001
-        self.velocities = np.zeros((N, 3))
-        self.attack_angles: Scalars = np.zeros(N)
-        self.flight_path_angles: Scalars = np.zeros(N)
-        self.roll_angles: Scalars = np.zeros(N)
-        # self.roll_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
-        self.azimuth_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
+        self.thrust_ratio = thrust_ratio
+        self.attack_angle_ratio = attack_angle_ratio
+        self.roll_angle_ratio = roll_angle_ratio
 
+        self.velocity_mins: Scalars = np.array(velocity_mins)
+        self.velocity_maxs: Scalars = np.array(velocity_maxs)
+        self.azimuth_rate_mins: Scalars = np.array(azimuth_rate_mins)
+        self.azimuth_rate_maxs: Scalars = np.array(azimuth_rate_maxs)
+        self.attack_angle_mins: Scalars = np.array(attack_angle_mins)
+        self.attack_angle_maxs: Scalars = np.array(attack_angle_maxs)
+        self.positions: Vectors = np.array(positions, dtype=np.float64)
+
+        self.speeds = np.zeros(N, dtype=np.float64) + 0.001
+        self.velocities = np.zeros((N, 3), dtype=np.float64)
+        self.attack_angles: Scalars = np.zeros(N, dtype=np.float64)
+        self.flight_path_angles: Scalars = np.zeros(N, dtype=np.float64)
+        self.roll_angles: Scalars = np.zeros(N, dtype=np.float64)
+        # self.roll_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
+        self.azimuth_angles: Scalars = np.zeros(N, dtype=np.float64)
+        # self.azimuth_angles: Scalars = np.array(
+        #     [np.pi / 2, -np.pi / 2], dtype=np.float64
+        # )
         # agent inputs
-        self.thrusts: Scalars = np.zeros(N)
-        self.attack_angle_rates: Scalars = np.zeros(N)
-        self.roll_angle_rates: Scalars = np.zeros(N)
-        self.chosen_actions: Vectors = np.zeros((N, 3))
+        self.thrusts: Scalars = np.zeros(N, dtype=np.float64)
+        self.attack_angle_rates: Scalars = np.zeros(N, dtype=np.float64)
+        self.roll_angle_rates: Scalars = np.zeros(N, dtype=np.float64)
+        self.chosen_actions: Vectors = np.zeros((N, 3), dtype=np.float64)
 
         # capturing
-        self.position_history: list[deque[Vectors]] = [
-            deque(maxlen=SimulationConfig.CAPTURE_POINT_STEPS + 1)
-            for _ in range(self.N)
-        ]
-        self.capture_points: Vectors = self.positions.copy() + np.array(
-            [[0, -250, 0], [0, -250, 0]]
-        )
+        self.active: npt.NDArray[np.bool_] = np.ones(N, dtype=bool)
         self.capture_buffer: Vectors = np.zeros((self.N, self.N), dtype=int)
+        self.distance_check: Vectors = np.zeros((self.N, self.N), dtype=bool)
+        self.nose_check: Vectors = np.zeros((self.N, self.N), dtype=bool)
+        self.asymmetry_check: Vectors = np.zeros((self.N, self.N), dtype=bool)
 
-    def step(self) -> int:
-        new_thrusts = np.zeros(self.N)
-        new_attack_angle_rates = np.zeros(self.N)
-        new_roll_angle_rates = np.zeros(self.N)
+    def step(self) -> list[tuple[int, int]]:
+        new_thrusts = np.zeros(self.N, dtype=np.float64)
+        new_attack_angle_rates = np.zeros(self.N, dtype=np.float64)
+        new_roll_angle_rates = np.zeros(self.N, dtype=np.float64)
+
+        print(self.attack_angle_maxs)
 
         (
             projected_positions,
@@ -185,12 +239,23 @@ class Simulation:
             new_thrusts,
             new_attack_angle_rates,
             new_roll_angle_rates,
+            self.velocity_mins,
+            self.velocity_maxs,
+            self.azimuth_rate_mins,
+            self.azimuth_rate_maxs,
+            self.attack_angle_mins,
+            self.attack_angle_maxs,
         )
 
         # determine each agent's action via MDP
         for i in range(self.N):
+            if not self.active[i]:
+                continue
             mdp = MDP(
                 i,
+                self.thrust_ratio[i],
+                self.attack_angle_ratio[i],
+                self.roll_angle_ratio[i],
                 self.positions,
                 self.speeds,
                 self.attack_angles,
@@ -204,6 +269,12 @@ class Simulation:
                 projected_velocities,
                 # self.positions.copy(),
                 # self.velocities.copy(),
+                self.velocity_mins,
+                self.velocity_maxs,
+                self.azimuth_rate_mins,
+                self.azimuth_rate_maxs,
+                self.attack_angle_mins,
+                self.attack_angle_maxs,
             )
             action = mdp.find_action()
             self.chosen_actions[i] = action
@@ -228,55 +299,107 @@ class Simulation:
                 self.thrusts,
                 self.attack_angle_rates,
                 self.roll_angle_rates,
+                self.velocity_mins,
+                self.velocity_maxs,
+                self.azimuth_rate_mins,
+                self.azimuth_rate_maxs,
+                self.attack_angle_mins,
+                self.attack_angle_maxs,
             )
         )
 
         self.timestep += 1
+        # return -1
         return self.capturing()
 
-    def capturing(self) -> int:
-        # Update capture points
-        for i in range(self.N):
-            self.position_history[i].append(self.positions[i].copy())
+    def capturing(self) -> list[tuple[int, int]]:
+        captures: list[tuple[int, int]] = []
+        captured_evaders: set[int] = set()
 
-            if len(self.position_history[i]) < SimulationConfig.CAPTURE_POINT_STEPS + 1:
-                self.capture_points[i] = self.positions[i].copy()
-            else:
-                self.capture_points[i] = self.position_history[i][0]
-
-        # Check capturing
         for pursuer in range(self.N):
+            if not self.active[pursuer]:
+                continue
             for evader in range(self.N):
-                if pursuer == evader:
+                if (
+                    pursuer == evader
+                    or not self.active[evader]
+                    or evader in captured_evaders
+                ):
                     continue
 
-                distance_check = (
-                    np.sum((self.positions[pursuer] - self.capture_points[evader]) ** 2)
-                    < SimulationConfig.CAPTURE_RADIUS_SQUARED
-                )
-                velocity_check = np.arccos(
-                    np.clip(
-                        np.sin(self.flight_path_angles[pursuer])
-                        * np.sin(self.flight_path_angles[evader])
-                        + np.cos(self.flight_path_angles[pursuer])
-                        * np.cos(self.flight_path_angles[evader])
-                        * np.cos(
-                            self.azimuth_angles[pursuer] - self.azimuth_angles[evader]
-                        ),
-                        -1.0,
-                        1.0,
-                    )
-                ) <= np.deg2rad(60)
+                # Distance check
+                r_pe = self.positions[evader] - self.positions[pursuer]
+                d = np.linalg.norm(r_pe)
+                distance_check = d < SimulationConfig.CAPTURE_RADIUS
 
-                if distance_check and velocity_check:
+                # Nose directions from flight path, attack and azimuth angles
+                pursuer_nose = np.array(
+                    [
+                        np.cos(
+                            self.flight_path_angles[pursuer]
+                            + self.attack_angles[pursuer]
+                        )
+                        * np.cos(self.azimuth_angles[pursuer]),
+                        np.cos(
+                            self.flight_path_angles[pursuer]
+                            + self.attack_angles[pursuer]
+                        )
+                        * np.sin(self.azimuth_angles[pursuer]),
+                        np.sin(
+                            self.flight_path_angles[pursuer]
+                            + self.attack_angles[pursuer]
+                        ),
+                    ]
+                )
+                evader_nose = np.array(
+                    [
+                        np.cos(
+                            self.flight_path_angles[evader] + self.attack_angles[evader]
+                        )
+                        * np.cos(self.azimuth_angles[evader]),
+                        np.cos(
+                            self.flight_path_angles[evader] + self.attack_angles[evader]
+                        )
+                        * np.sin(self.azimuth_angles[evader]),
+                        np.sin(
+                            self.flight_path_angles[evader] + self.attack_angles[evader]
+                        ),
+                    ]
+                )
+
+                r_pe_hat = r_pe / d
+                r_ep_hat = -r_pe_hat
+
+                # Pursuer nose pointing at evader within 50 degrees
+                pursuer_alignment = np.dot(pursuer_nose, r_pe_hat)
+                nose_check = pursuer_alignment >= np.cos(np.deg2rad(50))
+
+                # Pursuer has meaningfully better alignment than evader
+                evader_alignment = np.dot(evader_nose, r_ep_hat)
+                asymmetry_check = pursuer_alignment > evader_alignment + 0.2
+
+                self.distance_check[pursuer][evader] = distance_check
+                self.nose_check[pursuer][evader] = nose_check
+                self.asymmetry_check[pursuer][evader] = asymmetry_check
+
+                if distance_check and nose_check and asymmetry_check:
                     self.capture_buffer[evader][pursuer] += 1
                 else:
                     self.capture_buffer[evader][pursuer] = 0
 
-                if self.capture_buffer[evader][pursuer] >= 30:
-                    return evader
+                if (
+                    self.capture_buffer[evader][pursuer]
+                    >= SimulationConfig.CAPTURE_POINT_STEPS
+                ):
+                    captures.append((evader, pursuer))
+                    captured_evaders.add(evader)
 
-        return -1
+        for evader, _ in captures:
+            self.active[evader] = False
+            self.capture_buffer[evader] = 0
+            self.capture_buffer[:, evader] = 0
+
+        return captures
 
 
 class SimulationManager:
@@ -285,17 +408,27 @@ class SimulationManager:
 
     def __init__(self, logger: Logger):
         self.logger = logger
-        self.simulation = Simulation(SimulationConfig.AGENTS)
 
-    def run(self, *callbacks: Callable[[Simulation], None]):
-        while True:
-            captured = self.simulation.step()
+    def setup(self, parameters: dict[str, list[float] | list[list[float]]]):
+        self.simulation = Simulation(SimulationConfig.AGENTS, **parameters)  # type: ignore
 
-            if captured != -1:
-                self.logger.info(
-                    f"Agent {captured} ({VisualisationConfig.COLOURS[captured % len(VisualisationConfig.COLOURS)]}) captured!"
+    def run(
+        self, *callbacks: Callable[[Simulation], None]
+    ) -> tuple[int, list[tuple[int, int, int]]]:
+        all_captures: list[tuple[int, int, int]] = []
+
+        while self.simulation.timestep < SimulationConfig.MAX_TIMESTEPS:
+            captures = self.simulation.step()
+
+            for captured_id, capturer_id in captures:
+                all_captures.append(
+                    (self.simulation.timestep, captured_id, capturer_id)
                 )
-                break
 
             for callback in callbacks:
                 callback(self.simulation)
+
+            if np.sum(self.simulation.active) <= 1:
+                break
+
+        return (self.simulation.timestep, all_captures)
