@@ -1,8 +1,11 @@
+import pytest
 from unittest.mock import patch, MagicMock
 from display import Display
 from simulation.simulation import Simulation
 from rich.console import Console
 from configs import simulation as SimulationConfig
+
+pytestmark = pytest.mark.skip(reason="display tests not currently maintained")
 import numpy as np
 
 

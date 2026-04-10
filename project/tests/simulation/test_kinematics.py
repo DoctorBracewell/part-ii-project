@@ -4,20 +4,36 @@ from simulation.simulation import step_agents
 from configs import simulation as SimulationConfig
 
 
+def make_bounds(N: int):
+    """Return permissive no-op bounds for N agents so physics tests are not distorted."""
+    M = float(SimulationConfig.MACH)
+    return dict(
+        velocity_mins=np.full(N, 1e-6, dtype=np.float64),
+        velocity_maxs=np.full(N, 10.0 * M, dtype=np.float64),
+        azimuth_rate_mins=np.full(N, -1e6, dtype=np.float64),
+        azimuth_rate_maxs=np.full(N, 1e6, dtype=np.float64),
+        attack_angle_mins=np.full(N, -np.pi / 2 + 1e-3, dtype=np.float64),
+        attack_angle_maxs=np.full(N, np.pi / 2 - 1e-3, dtype=np.float64),
+    )
+
+
 def test_no_gravity_straight_flight():
-    """Test that with no gravity and no thrust, the agent flies in a straight line."""
+    """With no gravity and no thrust, agents fly in straight lines at constant velocity."""
     SimulationConfig.G = 0.0
     SimulationConfig.L = 0.0
+    step_agents.recompile()
 
+    N = 2
+    bounds = make_bounds(N)
     positions = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
     velocities = np.array([100.0, 200.0])
-    attack_angles = np.zeros(2)
-    flight_path_angles = np.zeros(2)
-    roll_angles = np.zeros(2)
-    azimuth_angles = np.array([0.0, np.pi / 2])  # Agent 1 along x, Agent 2 along y
-    thrusts = np.zeros(2)
-    attack_angle_rates = np.zeros(2)
-    roll_angle_rates = np.zeros(2)
+    attack_angles = np.zeros(N)
+    flight_path_angles = np.zeros(N)
+    roll_angles = np.zeros(N)
+    azimuth_angles = np.array([0.0, np.pi / 2])  # agent 0 along x, agent 1 along y
+    thrusts = np.zeros(N)
+    attack_angle_rates = np.zeros(N)
+    roll_angle_rates = np.zeros(N)
 
     for _ in range(SimulationConfig.STEPS_PER_SECOND):
         (
@@ -38,6 +54,7 @@ def test_no_gravity_straight_flight():
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            **bounds,
         )
 
     assert np.allclose(positions[0], [100.0, 0.0, 0.0])
@@ -47,20 +64,22 @@ def test_no_gravity_straight_flight():
 
 
 def test_level_flight_with_thrust():
-    """Test that with thrust balancing gravity, the agent maintains altitude."""
+    """With thrust balancing gravity, the agent maintains altitude."""
     SimulationConfig.G = 9.81
     SimulationConfig.L = 1.0
+    step_agents.recompile()
 
+    N = 1
+    bounds = make_bounds(N)
     positions = np.array([[0.0, 0.0, 1000.0]])
     velocities = np.array([0.0])
-    attack_angles = np.zeros(1)
-    flight_path_angles = np.zeros(1)
-    roll_angles = np.zeros(1)
-    azimuth_angles = np.zeros(1)
-
-    thrusts = np.zeros(1)
-    attack_angle_rates = np.zeros(1)
-    roll_angle_rates = np.zeros(1)
+    attack_angles = np.zeros(N)
+    flight_path_angles = np.zeros(N)
+    roll_angles = np.zeros(N)
+    azimuth_angles = np.zeros(N)
+    thrusts = np.zeros(N)
+    attack_angle_rates = np.zeros(N)
+    roll_angle_rates = np.zeros(N)
 
     for _ in range(SimulationConfig.STEPS_PER_SECOND):
         (
@@ -81,38 +100,34 @@ def test_level_flight_with_thrust():
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            **bounds,
         )
 
-    assert np.allclose(
-        positions[0, 2], 1000.0, atol=1e-1
-    )  # Altitude should be constant
-    # assert np.allclose(velocities[0], 100.0)  # Velocity should be constant
+    assert np.allclose(positions[0, 2], 1000.0, atol=1e-1)
 
 
 def test_level_turn():
-    """Test a coordinated turn."""
+    """A coordinated turn changes azimuth while preserving altitude and speed."""
     SimulationConfig.G = 9.81
     SimulationConfig.L = 0.0
 
     v = 100.0
-    roll_angle = np.deg2rad(30)  # 30 degree bank
-
-    # In a coordinated turn, Lift = Weight / cos(roll)
-    # So the load factor nf = 1 / cos(roll)
+    roll_angle = np.deg2rad(30)
     nf = 1 / np.cos(roll_angle)
-
-    # We need nf = thrust * sin(attack) + L. Let's set L = nf and thrust = 0.
     SimulationConfig.L = nf
+    step_agents.recompile()
 
+    N = 1
+    bounds = make_bounds(N)
     positions = np.array([[0.0, 0.0, 1000.0]])
     velocities = np.array([v])
-    attack_angles = np.zeros(1)
-    flight_path_angles = np.zeros(1)
-    roll_angles = np.full(1, roll_angle)
-    azimuth_angles = np.zeros(1)
-    thrusts = np.zeros(1)
-    attack_angle_rates = np.zeros(1)
-    roll_angle_rates = np.zeros(1)
+    attack_angles = np.zeros(N)
+    flight_path_angles = np.zeros(N)
+    roll_angles = np.full(N, roll_angle)
+    azimuth_angles = np.zeros(N)
+    thrusts = np.zeros(N)
+    attack_angle_rates = np.zeros(N)
+    roll_angle_rates = np.zeros(N)
 
     for _ in range(SimulationConfig.STEPS_PER_SECOND):
         (
@@ -133,56 +148,40 @@ def test_level_turn():
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            **bounds,
         )
 
-    # Check that altitude is maintained
     assert np.allclose(positions[0, 2], 1000.0, atol=1e-1)
-
-    # Check that velocity is maintained
     assert np.allclose(velocities[0], v)
 
-    # Check that the azimuth angle has changed correctly
-    # azimuth_rate = g * tan(roll) / v
     expected_azimuth_rate = SimulationConfig.G * np.tan(roll_angle) / v
     expected_azimuth_change = expected_azimuth_rate * 1.0  # 1 second
     assert np.allclose(azimuth_angles[0], expected_azimuth_change, atol=1e-2)
 
 
 def test_climb():
-    """Test a steady climb."""
+    """A steady climb increases altitude while maintaining speed and flight path angle."""
     SimulationConfig.G = 9.81
     SimulationConfig.L = 0.0
 
     v = 100.0
-    flight_path_angle = np.deg2rad(10)  # 10 degree climb
-
-    # In a steady climb, T*cos(alpha) = D + W*sin(gamma)
-    # and L = W*cos(gamma)
-    # The equations of motion are different.
-    # Let's use the given equations.
-    # v_dot = g * (T*cos(alpha) - sin(gamma))
-    # gamma_dot = (g/v) * (nf*cos(roll) - cos(gamma))
-    #
-    # For a steady climb, v_dot = 0 and gamma_dot = 0.
-    # So T*cos(alpha) = sin(gamma)
-    # and nf*cos(roll) = cos(gamma)
-    #
-    # Let's set alpha = 0, roll = 0.
-    # Then T = sin(gamma) and nf = cos(gamma).
-    # Since nf = T*sin(alpha) + L, we have L = cos(gamma).
+    flight_path_angle = np.deg2rad(10)
 
     thrust = np.sin(flight_path_angle)
     SimulationConfig.L = np.cos(flight_path_angle)
+    step_agents.recompile()
 
+    N = 1
+    bounds = make_bounds(N)
     positions = np.array([[0.0, 0.0, 1000.0]])
     velocities = np.array([v])
-    attack_angles = np.zeros(1)
-    flight_path_angles = np.full(1, flight_path_angle)
-    roll_angles = np.zeros(1)
-    azimuth_angles = np.zeros(1)
-    thrusts = np.full(1, thrust)
-    attack_angle_rates = np.zeros(1)
-    roll_angle_rates = np.zeros(1)
+    attack_angles = np.zeros(N)
+    flight_path_angles = np.full(N, flight_path_angle)
+    roll_angles = np.zeros(N)
+    azimuth_angles = np.zeros(N)
+    thrusts = np.full(N, thrust)
+    attack_angle_rates = np.zeros(N)
+    roll_angle_rates = np.zeros(N)
 
     for _ in range(SimulationConfig.STEPS_PER_SECOND):
         (
@@ -203,55 +202,39 @@ def test_climb():
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            **bounds,
         )
 
-    # Check that velocity is maintained
     assert np.allclose(velocities[0], v)
-
-    # Check that flight path angle is maintained
     assert np.allclose(flight_path_angles[0], flight_path_angle)
 
-    # Check that altitude has increased correctly
-    # z_dot = v * sin(gamma)
-    expected_altitude_change = v * np.sin(flight_path_angle) * 1.0  # 1 second
+    expected_altitude_change = v * np.sin(flight_path_angle) * 1.0
     assert np.allclose(positions[0, 2] - 1000.0, expected_altitude_change, atol=1)
 
 
 def test_dive():
-    """Test a steady dive."""
+    """A steady dive decreases altitude while maintaining speed and flight path angle."""
     SimulationConfig.G = 9.81
     SimulationConfig.L = 0.0
 
     v = 100.0
-    flight_path_angle = np.deg2rad(-10)  # 10 degree dive
+    flight_path_angle = np.deg2rad(-10)
 
-    # In a steady dive, T*cos(alpha) = D + W*sin(gamma)
-    # and L = W*cos(gamma)
-    # The equations of motion are different.
-    # Let's use the given equations.
-    # v_dot = g * (T*cos(alpha) - sin(gamma))
-    # gamma_dot = (g/v) * (nf*cos(roll) - cos(gamma))
-    #
-    # For a steady dive, v_dot = 0 and gamma_dot = 0.
-    # So T*cos(alpha) = sin(gamma)
-    # and nf*cos(roll) = cos(gamma)
-    #
-    # Let's set alpha = 0, roll = 0.
-    # Then T = sin(gamma) and nf = cos(gamma).
-    # Since nf = T*sin(alpha) + L, we have L = cos(gamma).
-
-    thrust = np.sin(flight_path_angle)  # This will be negative
+    thrust = np.sin(flight_path_angle)
     SimulationConfig.L = np.cos(flight_path_angle)
+    step_agents.recompile()
 
+    N = 1
+    bounds = make_bounds(N)
     positions = np.array([[0.0, 0.0, 1000.0]])
     velocities = np.array([v])
-    attack_angles = np.zeros(1)
-    flight_path_angles = np.full(1, flight_path_angle)
-    roll_angles = np.zeros(1)
-    azimuth_angles = np.zeros(1)
-    thrusts = np.full(1, thrust)
-    attack_angle_rates = np.zeros(1)
-    roll_angle_rates = np.zeros(1)
+    attack_angles = np.zeros(N)
+    flight_path_angles = np.full(N, flight_path_angle)
+    roll_angles = np.zeros(N)
+    azimuth_angles = np.zeros(N)
+    thrusts = np.full(N, thrust)
+    attack_angle_rates = np.zeros(N)
+    roll_angle_rates = np.zeros(N)
 
     for _ in range(SimulationConfig.STEPS_PER_SECOND):
         (
@@ -272,15 +255,11 @@ def test_dive():
             thrusts,
             attack_angle_rates,
             roll_angle_rates,
+            **bounds,
         )
 
-    # Check that velocity is maintained
     assert np.allclose(velocities[0], v)
-
-    # Check that flight path angle is maintained
     assert np.allclose(flight_path_angles[0], flight_path_angle)
 
-    # Check that altitude has decreased correctly
-    # z_dot = v * sin(gamma)
-    expected_altitude_change = v * np.sin(flight_path_angle) * 1.0  # 1 second
+    expected_altitude_change = v * np.sin(flight_path_angle) * 1.0
     assert np.allclose(positions[0, 2] - 1000.0, expected_altitude_change, atol=1)

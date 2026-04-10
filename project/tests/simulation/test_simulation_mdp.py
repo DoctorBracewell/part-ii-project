@@ -1,15 +1,17 @@
 import numpy as np
+import pytest
 from simulation.mdp import MDP
 from configs import simulation as SimulationConfig
 
 
 def setup_mdp(N: int) -> MDP:
+    M = SimulationConfig.MACH
     positions = np.random.rand(N, 3) * [
         SimulationConfig.WIDTH,
         SimulationConfig.LENGTH,
         SimulationConfig.HEIGHT,
     ]
-    velocities = np.random.uniform(-25, 25, size=(N,))
+    velocities = np.random.uniform(0.1 * M, 0.9 * M, size=(N,))
     attack_angles = np.zeros(N)
     flight_path_angles = np.zeros(N)
     roll_angles = np.zeros(N)
@@ -22,6 +24,9 @@ def setup_mdp(N: int) -> MDP:
 
     return MDP(
         i=0,
+        thrust_multiplier=10.0,
+        attack_angle_multiplier=1.5,
+        roll_angle_multiplier=1.5,
         positions=positions,
         velocities=velocities,
         attack_angles=attack_angles,
@@ -33,6 +38,12 @@ def setup_mdp(N: int) -> MDP:
         roll_angle_rates=roll_angle_rates,
         projected_positions=projected_positions,
         projected_velocities=projected_velocities,
+        velocity_mins=np.full(N, 0.1 * M),
+        velocity_maxs=np.full(N, 0.9 * M),
+        azimuth_rate_mins=np.full(N, -0.5),
+        azimuth_rate_maxs=np.full(N, 0.5),
+        attack_angle_mins=np.full(N, 0.09),
+        attack_angle_maxs=np.full(N, 0.35),
     )
 
 
