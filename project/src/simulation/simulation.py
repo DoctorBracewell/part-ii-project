@@ -218,8 +218,6 @@ class Simulation:
         new_attack_angle_rates = np.zeros(self.N, dtype=np.float64)
         new_roll_angle_rates = np.zeros(self.N, dtype=np.float64)
 
-        print(self.attack_angle_maxs)
-
         (
             projected_positions,
             projected_velocities,

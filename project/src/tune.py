@@ -29,16 +29,16 @@ parameters: dict[str, list[float] | list[list[float]]] = {
 }
 
 base: dict[str, list[float] | list[list[float]]] = {
-    "positions": [[5000, 4000, 6500], [5000, 6000, 6500], [5000, 5000, 6500]],
-    "velocity_mins": [0.1 * M] * 3,
-    "velocity_maxs": [inputs["velocity_maxs"][0]] * 3,
-    "azimuth_rate_mins": [inputs["azimuth_rate_mins"][0]] * 3,
-    "azimuth_rate_maxs": [inputs["azimuth_rate_maxs"][0]] * 3,
-    "attack_angle_mins": [0.09] * 3,
-    "attack_angle_maxs": [inputs["attack_angle_maxs"][0]] * 3,
-    "thrust_ratio": [10, 10, 10],  # [inputs["thrust_ratio"][0]] * 2,
-    "attack_angle_ratio": [1.5] * 3,
-    "roll_angle_ratio": [inputs["roll_angle_ratio"][0]] * 3,
+    "positions": [[5000, 4000, 6500], [5000, 6000, 6500]],
+    "velocity_mins": [0.1 * M] * 2,
+    "velocity_maxs": [inputs["velocity_maxs"][0]] * 2,
+    "azimuth_rate_mins": [inputs["azimuth_rate_mins"][0]] * 2,
+    "azimuth_rate_maxs": [inputs["azimuth_rate_maxs"][0]] * 2,
+    "attack_angle_mins": [0.09] * 2,
+    "attack_angle_maxs": [inputs["attack_angle_maxs"][0]] * 2,
+    "thrust_ratio": [10, 10],  # [inputs["thrust_ratio"][0]] * 2,
+    "attack_angle_ratio": [1.5] * 2,
+    "roll_angle_ratio": [inputs["roll_angle_ratio"][0]] * 2,
 }
 
 
@@ -68,7 +68,9 @@ def tune(logger: Logger):
         progress.stop()
 
         if captures:
-            logger.info(f"Captures {captures} by timestep {steps} with base parameters!")
+            logger.info(
+                f"Captures {captures} by timestep {steps} with base parameters!"
+            )
         else:
             logger.info(f"No capture by timestep {steps} with base parameters.")
 
@@ -105,8 +107,12 @@ def tune(logger: Logger):
             progress.stop()
 
             if captures:
-                logger.info(f"Captures {captures} by timestep {steps} with {parameter}={value:.1f}!")
+                logger.info(
+                    f"Captures {captures} by timestep {steps} with {parameter}={value:.1f}!"
+                )
             else:
-                logger.info(f"No capture by timestep {steps} with {parameter}={value:.1f}.")
+                logger.info(
+                    f"No capture by timestep {steps} with {parameter}={value:.1f}."
+                )
 
     logger.info(f"\nTuning results: {results}")
