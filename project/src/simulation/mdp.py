@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 from numba import njit
 
 from configs import mdp as MDPConfig
+from configs import simulation as SimulationConfig
 
 if TYPE_CHECKING:
     from simulation.simulation import Vectors, Scalars, Vector
@@ -138,10 +139,14 @@ class MDP:
         )
 
         total_reward = best_positive_reward - best_negative_reward
+        total_reward -= self.hard_deck_penalty(self_position[2])
         return total_reward
 
-    def hard_deck_penalty(self):
-        return 0.0
+    def hard_deck_penalty(self, z: float) -> float:
+        hard_deck = SimulationConfig.HARD_DECK
+        if z <= hard_deck:
+            return SimulationConfig.PENALTY
+        return SimulationConfig.PENALTY / (z - hard_deck)
 
 
 def positive_maximum(
