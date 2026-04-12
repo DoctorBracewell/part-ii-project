@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from logging import Logger
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 import numpy as np
 import numpy.typing as npt
 from collections import deque
@@ -10,6 +12,9 @@ from configs import simulation as SimulationConfig
 from configs import visualisation as VisualisationConfig
 from configs import mdp as MDPConfig
 from simulation.mdp import MDP
+
+if TYPE_CHECKING:
+    from configs.parameters import SimulationParams
 
 type Vector = npt.NDArray[np.float64]
 type Scalar = float
@@ -407,7 +412,7 @@ class SimulationManager:
     def __init__(self, logger: Logger):
         self.logger = logger
 
-    def setup(self, parameters: dict[str, list[float] | list[list[float]]]):
+    def setup(self, parameters: "SimulationParams"):
         self.simulation = Simulation(SimulationConfig.AGENTS, **parameters)  # type: ignore
 
     def run(

@@ -2,22 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from typing import TypedDict, NotRequired
-from configs import simulation as SimulationConfig
-
-M = SimulationConfig.MACH
-
-
-class ScenarioParams(TypedDict):
-    positions: list[list[float]]
-    velocity_mins: list[float]
-    velocity_maxs: list[float]
-    azimuth_rate_mins: list[float]
-    azimuth_rate_maxs: list[float]
-    attack_angle_mins: list[float]
-    attack_angle_maxs: list[float]
-    thrust_ratio: list[float]
-    attack_angle_ratio: list[float]
-    roll_angle_ratio: list[float]
+from configs.parameters import SimulationParams, M
 
 
 class Scenario(TypedDict):
@@ -25,7 +10,7 @@ class Scenario(TypedDict):
     name: str
     description: str
     N: int
-    params: ScenarioParams
+    params: SimulationParams
     initial: NotRequired[dict[str, list[float]]]
 
 

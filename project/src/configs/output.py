@@ -1,4 +1,5 @@
 OUTPUT_DIRECTORY = "results/intermediate"
+VALIDATION_DIRECTORY = "results/validation"
 DPI = 300
 FIGSIZE = (6, 6)
 X_PADDING_RATIO = 0.1

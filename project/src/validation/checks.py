@@ -7,7 +7,8 @@ import numpy.typing as npt
 import matplotlib.pyplot as plt
 
 from configs import simulation as SimulationConfig
-from validation.scenarios import Scenario, ScenarioParams
+from configs.parameters import SimulationParams
+from validation.scenarios import Scenario
 
 if TYPE_CHECKING:
     from simulation.simulation import Simulation
@@ -62,7 +63,7 @@ def make_recorder(
     return record, data
 
 
-def kinematic_valid(data: RecordData, params: ScenarioParams) -> KinematicResult:
+def kinematic_valid(data: RecordData, params: SimulationParams) -> KinematicResult:
     """Check speed, altitude, and turn rate remain within bounds for all active agents."""
     positions: npt.NDArray[np.float64] = np.array(data["positions"])    # (T, N, 3)
     speeds: npt.NDArray[np.float64] = np.array(data["speeds"])          # (T, N)
