@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 from numba import njit
 
 from configs import mdp as MDPConfig
+from configs import simulation as SimulationConfig
 
 if TYPE_CHECKING:
     from simulation.simulation import Vectors, Scalars, Vector
@@ -46,9 +47,9 @@ class MDP:
                     attack_angle * attack_angle_multiplier,
                     roll_angle * roll_angle_multiplier,
                 ]
-                for thrust in np.arange(0.0, 1.0, 0.1, dtype=np.float64)
-                for attack_angle in np.arange(-1, 1, 0.2, dtype=np.float64)
-                for roll_angle in np.arange(-1, 1, 0.2, dtype=np.float64)
+                for thrust in MDPConfig.ACTION_THRUSTS
+                for attack_angle in MDPConfig.ACTION_ATTACK_ANGLE_RATES
+                for roll_angle in MDPConfig.ACTION_ROLL_ANGLE_RATES
             ]
         )
 
@@ -138,9 +139,13 @@ class MDP:
         )
 
         total_reward = best_positive_reward - best_negative_reward
+        total_reward -= self.hard_deck_penalty(self_position[2])
         return total_reward
 
-    def hard_deck_penalty(self):
+    def hard_deck_penalty(self, z: float) -> float:
+        hard_deck = SimulationConfig.HARD_DECK
+        if z <= hard_deck:
+            return SimulationConfig.PENALTY
         return 0.0
 
 

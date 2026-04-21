@@ -71,7 +71,7 @@ class VisualisationManager:
             # self.capture_points.append(capture_point)
 
     def update(self, simulation: Simulation):
-        for i, plane in enumerate(self.planes):
+        for i, plane in enumerate(self.planes[:simulation.N]):
             position = simulation.positions[i]
             attack_angle = simulation.attack_angles[i]
             flight_path_angle = simulation.flight_path_angles[i]
