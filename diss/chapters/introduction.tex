@@ -1,8 +1,40 @@
 \label{sec:1}
 
-Introduction...
-
-\section{Introduction Section 1}
+\section{Motivation}
 \label{sec:1.1}
+Pursuit-evasion problems model scenarios where agents compete to intercept or evade one another. They are a well-studied problem in aerospace systems research, with practical applications in autonomous air combat, unmanned aerial vehicle (UAV) swarm coordination, and airspace collision avoidance.
 
-Introduction Section 1... 
+Approaching real-time solutions to these problems is challenging: the state space of even a simple scenario is continuous and high-dimensional. Exact solutions are computationally intractable\cite{mcgrew2010}, but Markov Decision Process-based formulations provide a performant framework for sequential decision-making through efficient approximation\cite{bertram2d}, and have been shown to scale to multi-agent teams in continuous 3D state spaces\cite{bertram3d}.
+
+This project implements and extends the FastMDP algorithm of Bertram et al.\cite{bertram2d} in a 3D kinematic simulation of fixed-wing aircraft. The primary focus is pursuit-evasion behaviour, investigated through novel reward functions and performance analysis. A key contribution is demonstrating that the same simulation and decision-making framework generalises to other problem spaces entirely, including collaborative flight and search-and-rescue, with changes only to the reward structure.
+
+The project is implemented in Python 3.13.2, using \texttt{numpy} and \texttt{numba} for numerical computation.
+
+\section{Project Aims}
+\label{sec:1.2}
+The core aims of this project are to:
+\begin{enumerate}[noitemsep]
+    \item Implement a kinematically accurate 3D simulation of fixed-wing aircraft using a pseudo-6DoF model.
+    \item Implement the FastMDP algorithm from scratch to drive behaviours between competing or collaborating agents.
+    \item Design and investigate reward functions that produce valid pursuit-evasion behaviour.
+    \item Analyse the engineering performance of the simulation and decision-making framework.
+\end{enumerate}
+
+After completing the core project, the following extensions were investigated:
+
+\begin{enumerate}[resume,noitemsep]
+    \item Scale the simulation from 1v1 encounters to multi-agent teams of arbitrary size.
+    \item Demonstrate that the simulation and decision-making framework is applicable to alternative problem spaces beyond pursuit-evasion, requiring changes only to the reward structure.
+\end{enumerate}
+
+\section{Success Criteria}
+\label{sec:1.3}
+The following criteria were used to evaluate the success of the project:
+\begin{enumerate}
+    \item \textbf{Behavioural validity}. The implemented FastMDP algorithm produces valid pursuit-evasion behaviour, defined according to a series of per-timestep constraints. This is the primary functional goal of the project and directly validates the correctness of the reward functions and decision-making framework.
+    \item \textbf{Kinematic validity}. Agent kinematics remain within physically realistic bounds throughout all simulation runs, including velocity, turn rate and altitude constraints. This validates the correctness of the kinematic model independently of the decision-making layer.
+    \item \textbf{Computational performance}. Agent actions are computed within a timeframe suitable for real-time simulation with appropriate optimisations investigated and evaluated.
+    \item \textbf{Extension validity}. Multi-agent teams and alternative problem spaces produce valid and consistent behaviour under the same framework.
+\end{enumerate}
+
+The remainder of the dissertation covers the preparation, implementation and evaluation carried out to meet these criteria.

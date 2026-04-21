@@ -1,8 +1,97 @@
 \label{sec:2}
 
-Preparation...
-
-\section{Preparation Section 1}
+\section{Related Work}
 \label{sec:2.1}
+Pursuit-evasion problems - where agents compete to capture or escape one another - were first formalised through a framework for reasoning about intelligent adversaries by Isaacs\cite{isaacs1965} and remain an active area of research across robotics, autonomous systems and aerospace\cite{weintraub2020}.
 
-Preparation Section 1... 
+Determining optimal strategies in real-time or close-to real time is computationally challenging as the problem grows in dimensionality - the state-action space becomes too large to represent with traditional exact methods\cite{bertsekas1996,powell2007}. This ‘curse of dimensionality’\cite{bellman1957} motivates a variety of approximation approaches. McGrew et al.\cite{mcgrew2010} demonstrated an approximate dynamic programming (ADP) approach to 1v1 air combat, involving a number of additional reward-shaping techniques. While effective, this approach is limited to 2D level flight at fixed velocity, does not approach the infinite state space of continuous flight\cite{bertram3d}, and does not scale to multi-agent teams. These limitations motivate a different approach for multi-agent pursuit-evasion in a continuous 3D environment.
+
+Bertram et al.\cite{bertram2d} proposed a novel algorithm to closely approximate the solution to a class of MDPs with sparse rewards which they term FastMDP. Instead of well-known value iteration or policy iteration methods\cite{bellman1957,sutton1998}, FastMDP reframes the MDP as a graph and computes the value function from individual reward sources, combining positive and negative peaks into a single surface. The algorithm has no dependency on the size of the state space, making it suitable for continuous spaces and real-time computation. This was initially demonstrated in a 2D UAV path planning context, showing scaling with the number of obstacles.
+
+Further works by Bertram and Wei\cite{bertram3d} expanded FastMDP to a fully continuous 3D state space, incorporating a pseudo-6DoF kinematic model of fixed-wing aircraft. That work forms the basis for the simulation and decision-making framework developed in this project.
+
+\review{NECESSARY?}
+Paragraph/justification about moving forwards with the FastMDP influence in my implementation, but what were my differentiations? Primarily reward structure, performance analysis alternative behaviour extensions\
+
+\section{Starting Point}
+\label{sec:2.2}
+I had experience with building and applying Markov models in Python (in particular Markov Chains and Hidden Markov Models) from my Part IA Machine Learning and Real-World Data course, but I had not specifically implemented a Markov Decision Process or the FastMDP algorithm before.
+
+I did not have experience with pursuit-evasion problems or explicit kinematic models, but I had written Java code to simulate physical three-dimensional systems before with a focus on linear algebra and vector mathematics rather than aerodynamics.
+
+I was confident with the Python programming language and the tooling around it including virtual environments, the pip package manager and the pytest testing framework. I had real-world corporate experience in managing large python projects, and was also comfortable working with the Git version control system and GitHub actions for development workflows.
+
+The final implementations are not based on existing codebases or machine learning libraries, but I identified similar projects from related work and examined their algorithms and pseudocode to influence my work.
+
+\section{Theory and Design}
+\label{sec:2.3}
+
+\todo{THIS}
+Talk about the complexity of kinematic modelling as a “substantial body of theory” to understand and demonstrate additional challenge. 
+Introduce MDPs first, then approximations of MDPs I ended up using, then finally FastMDP algorithm and my reward functions.
+Mathematical models and algorithmic descriptions. Lots of fun stuff to talk about, now I have a good sense of the algorithm etc. make sure it references how I understood the algorithm and required forms before jumping into implementation.
+MDPs
+FastMDP
+Rewards - negative vs positive, standard positive form, radii calculation
+Kinematics - TODO
+Talk about what I did instead of jumping straight into writing code - reference the papers and learning materials I used to understand MDPs, show my architecture diagram for the codebase (and then later discuss how this changed throughout implementation). What design decisions did I make early on? 
+Pursuers vs evaders vs mutli-agents etc? 
+Similar to above, codebase design decisions - and TOOL justificateionts!.
+Full OOP vs half-OOP with vectorised arrays. Very clear structure of the simulation vs optimisation with less abstraction opportunities. numba doesn’t lend itself well to OOP (or most python-writing style) so that extension required some restructuring. Manager class was still used, but I extracted key optimisation methods like kinematic calculations for JIT compilation and utilised arrays instead of classes to represent agents for vectorised computation.
+It also meant that I wouldn’t have to serialise/deserialise between Agent classes and raw data for forward projection.
+Other additional complexities could be numba library, talking about additional challenges involved in learning in-depth compilation strategies for python and how these can be translated to JIT C compilation and how this limits normal python stdlib.
+How did I know it would be a good fit?
+Need to motivate that I explored the components enough to know it would work
+Markov Decision Process
+Settlted on python because - experience working with it, numpy and numba for efficient computation, comfortable with libraries like matplotlib or pyvista for visualisations.
+Dynamically typed so sutitable.
+Anticipated challenges at the start: visualisations, performance/scalability, scope creep? For each of these describe how I anticipated and explored to make sure there were no hidden surprises.
+dfasd
+
+asdfasd
+
+asdfadsf
+
+adsfsd
+
+\section{Requirements Analysis}
+\label{sec:2.4}
+Before beginning the project I performed a requirements analysis using the \textit{MoSCoW} system. The \textit{Must} requirements map directly onto the (non-extension) success criteria defined in the Introduction chapter.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{0.8\textwidth}@{\hspace{1cm}}l}
+\textbf{Requirement} & \textbf{Priority} \\
+\midrule
+3D kinematic simulation of fixed-wing aircraft using a pseudo-6DoF model & \colorbox{mustgreen}{\texttt{Must}} \\
+FastMDP-based decision making framework for pursuit-evasion behaviour & \colorbox{mustgreen}{\texttt{Must}} \\
+Agent actions are computed within a timeframe suitable for real-time simulation & \colorbox{mustgreen}{\texttt{Must}} \\
+Valid kinematic and behavioural outputs verified against defined criteria & \colorbox{mustgreen}{\texttt{Must}} \\
+\midrule
+Output system producing video or visualisation results of simulation runs & \colorbox{shouldyellow}{\texttt{Should}} \\
+Reward functions are configurable without changes to core implementation & \colorbox{shouldyellow}{\texttt{Should}} \\
+Codebase is modular and extensible to alternative problem spaces & \colorbox{shouldyellow}{\texttt{Should}} \\
+\midrule
+Scale to multi-agent teams beyond 1v1 & \colorbox{couldorange}{\texttt{Could}} \\
+JIT compilation via \texttt{numba} for performance gains & \colorbox{couldorange}{\texttt{Could}} \\
+Demonstrate framework applicability to alternative problem spaces & \colorbox{couldorange}{\texttt{Could}} \\
+\midrule
+Additionally accurate kinematic modelling beyond pseudo-6DoF & \colorbox{wontred}{\texttt{Won't}} \\
+Real-world hardware deployment & \colorbox{wontred}{\texttt{Won't}} \\
+\end{tabular}
+\caption{MoSCoW requirements analysis}
+\label{tab:requirements}
+\end{table}
+
+\section{Development Methodology}
+\label{sec:2.5}
+The project was developed on a personal MacBook Pro (2021, Apple M1 Pro, 16GB RAM) running Python \texttt{v3.13.2}. Key libraries were verified for compatibility before implementation with particular attention to \texttt{numba}, which supports ARM-based Apple Silicon\cite{numba_install} but required testing to confirm JIT compilation behaved correctly.
+
+Git was used for version control throughout development, with source code, assets and dissertation drafts regularly committed to a remote GitHub repository.
+
+An agile approach to software development was adopted throughout the project. The milestones from the project proposal were used as starting points for implementation sprints, with a short written review after each 2-3 week sprint. These reviews are included in Appendix A. This approach allowed flexibility throughout the academic year as other in-term commitments and vacations affected the development schedule, which is also reflected in the commit frequency of the repository.
+
+Unit tests were generated for individual modules using the \texttt{pytest} framework and produced alongside each implementation. A GitHub Actions workflow was configured to run the full test suite on every remote commit, with results and coverage reports stored as build artefacts. This provided a record of test outcomes throughout development to be referenced in the Evaluation chapter. However maintaining high test coverage proved to be challenging during heavy refactoring of the central implementations and limited the effectiveness of the suite. This is discussed further in the Implementation chapter.
+
+Generative AI tooling was used in two clearly delineated capacities. Firstly, it was used to generate the unit tests from the existing implementations, coming up with realistic and edge-case values for the simulation and kinematic components. Secondly, it was used to produce boilerplate code for the output and visualisation modules with the Matplotlib library. All simulation, MDP, and kinematic code was written independently. No AI-generated code was included in the main algorithmic implementations, but separate chat windows were used throughout development to aid with documentation searching and reinforcing theoretical knowledge.

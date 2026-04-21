@@ -7,6 +7,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{titlesec}
 
+
 % code highlighting
 \usepackage{minted}
 
@@ -29,7 +30,14 @@
 % get rid of empty pages
 \renewcommand{\cleardoublepage}{\clearpage}
 
+\usepackage{soul}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\review}[1]{\textcolor{orange}{\textbf{[REVIEW: #1]}}}
+
+\usepackage{booktabs}
+
 \raggedbottom
 \sloppy
 \clubpenalty1000%
 \widowpenalty1000%
+\hbadness=10000

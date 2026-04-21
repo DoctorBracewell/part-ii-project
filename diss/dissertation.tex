@@ -2,7 +2,7 @@
 \usepackage{preamble} % imported packages/macros/styling from preamble.sty 
 
 \usepackage[sorting=none]{biblatex} % sorting=none means citations in bibliography appear in the order they are cited  
-\usepackage[none]{hyphenat} % Disables hyphenation for the entire document. Words will no longer be split across multiple lines with hyphens
+\usepackage{enumitem}
 \addbibresource{ref.bib} % Add bibliography from ref.bib 
 
 \begin{document}
@@ -12,6 +12,11 @@
 %TC:ignore
 
 % ----------------------------------------------------------------------
+
+\definecolor{mustgreen}{RGB}{198, 239, 206}
+\definecolor{shouldyellow}{RGB}{255, 235, 156}
+\definecolor{couldorange}{RGB}{255, 199, 134}
+\definecolor{wontred}{RGB}{255, 199, 206}
 
 % Cover page 
 \pagestyle{empty}
@@ -149,21 +154,27 @@ None.
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{0}}
 
-\chapter{\(\langle\)APPENDIX A NAME\(\rangle\)}
+\chapter{\(\langle\)Sprint Reviews\(\rangle\)}
 
-\input{chapters/appendices/A_A-name.tex}
+\input{chapters/appendices/A_sprint-reviews.tex}
 
 \newpage
 
-\chapter{\(\langle\)APPENDIX B NAME\(\rangle\)}
+\chapter{\(\langle\)Configuration Values\(\rangle\)}
 
-\input{chapters/appendices/B_B-name.tex}
+\input{chapters/appendices/B_config-values.tex}
+
+\newpage
+
+\chapter{\(\langle\)Validation Scenarios\(\rangle\)}
+
+\input{chapters/appendices/C_validation-scenarios.tex}
 
 \newpage
 
 \chapter{Proposal}
 
-\input{chapters/appendices/C_proposal.tex}
+\input{chapters/appendices/D_proposal.tex}
 
 %TC:endignore
 \end{document}

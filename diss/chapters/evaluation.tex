@@ -1,8 +1,61 @@
 \label{sec:4}
 
-Evaluation...
+The success criteria outlined in the Introduction chapter were revisited to inform evaluation.
+\begin{enumerate}
+    \item \textbf{Behavioural validity}. The implemented FastMDP algorithm produces valid pursuit-evasion behaviour, defined according to a series of per-timestep constraints.
+    \item \textbf{Kinematic validity}. Agent kinematics remain within physically realistic bounds throughout all simulation runs, including velocity, turn rate and altitude constraints.
+    \item \textbf{Computational performance}. Agent actions are computed within a timeframe suitable for real-time simulation with appropriate optimisations investigated and evaluated.
+    \item \textbf{Extension validity}. Multi-agent teams and alternative problem spaces produce valid and consistent behaviour under the same framework.
+\end{enumerate}
 
-\section{Evaluation Section 1}
+\section{Functional Evaluation}
 \label{sec:4.1}
+Throughout implementation I had been iteratively adjusting the FastMDP algorithm and reward functions to drive desirable behaviour. As described in the Implementation chapter this process was driven partly by qualitative analysis of the flight paths and partly by manual simulated annealing of my reward function parameters. 
+After completing the project core, I wanted to more strictly examine the pursuit and evasion behaviour of the agents to inform the success of the project.
 
-Evaluation Section 1... 
+I designed a set of 1v1 validation scenarios, each defined by a specific combination of initial values and agent parameter ratios, ranging in complexity. Each scenario was run for up to 1000 timesteps or until a capture, and at each timestep the agent values were recorded and checked against predefined validation criteria. A scenario is considered valid if all tracked values satisfy these criteria throughout the run. The exact values of the scenarios and their validation results can be found in Appendix C. 
+
+\subsection{Validity Definitions}
+\label{sec:4.1.1}
+I defined two types of validity and the criteria for them between timesteps.
+
+\textbf{Kinematic Validity}
+
+For each agent for each timestep, three parameters were checked against the bounds established in the kinematic model:
+
+\begin{itemize}[nosep]
+    \item Velocity $v \in [34.3, 103.0]$ m/s (0.1 - 0.3 Mach)
+    \item Azimuth rate $\dot{\psi} \in [-1.3, 1.3]$ rad/s
+    \item Altitude $z > 0$ m
+\end{itemize}
+
+\textbf{Behavioural Validity}
+
+Let $d(t) = ||\mathbf{p}_1(t) - \mathbf{p}_2(t)||$ be the Euclidean distance between a pair of agents with position functions $\mathbf{p}_1$ and $\mathbf{p}_2$. \\
+Further let $d_0 = d(0)$ the initial separation and $d_{\min} = \min_{t \in [0, 1000]} d(t)$ the minimum separation.
+
+A scenario is considered behaviourally valid if:
+
+\begin{enumerate}[nosep]
+    \item $\exists\, t.d(t) < d(t-1)$ --- i.e. $d(t)$ does not monotonically increase throughout the run.
+    \item $d_{\min} < d_0$ OR capture occurs during the run.
+\end{enumerate}
+
+Together these ensure that the reward functions produce meaningful interaction -- a non-increasing $d(t)$ at some point implies at least one agent is closing on the other's position, and $d_{\min} < d_0$ confirms this response results in net closure over the course of the run.
+
+If all agents are kinematically valid, and all pairs of agents are behaviourally valid, then the scenario is valid.
+
+\subsection{Observations}
+\label{4.1.2}
+
+I plotted the kinematic and ehavioural validites!
+examples here?
+
+Note that in scenario 1, agents initialised head-on at large separation may satisfy these criteria through near-straight-line flight, which is also optimal behaviour in that configuration so it is not particulary useful to examine the pursuit-evasion behaviour stuff. This scenario therefore primarily validates kinematic correctness rather than complex decision-making.
+
+in scenario 2, the agents face directly away from each other. You might think they maximise their turn rates, but instead use a combination of upward lift and slight turns to fall back towards each other?
+
+Scenario 7 - kinematically failed! went below hard deck - my penalty clearly didn't work.
+
+\subsection{Parameter Tuning}
+\label{4.1.3}
