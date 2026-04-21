@@ -33,13 +33,22 @@ logger = logging.getLogger("rich")
 
 parser = ArgumentParser(prog="Pursuit-Evasion Simulation")
 parser.add_argument(
-    "-d", "--display", action="store_true", help="Live terminal dashboard."
+    "-d",
+    "--display",
+    action="store_true",
+    help="Display the live terminal dashboard during the simulation run.",
 )
 parser.add_argument(
-    "-o", "--outputs", action="store_true", help="Save plots and video."
+    "-o",
+    "--outputs",
+    action="store_true",
+    help="Save outputs (plots and video) to the results directory after the simulation run.",
 )
 parser.add_argument(
-    "-v", "--visualisation", action="store_true", help="Live 3D visualisation."
+    "-v",
+    "--visualisation",
+    action="store_true",
+    help="Display the live 3D Qt visualisation during the simulation run.",
 )
 
 
@@ -77,7 +86,7 @@ if __name__ == "__main__":
     # setup args
     args = parser.parse_args()
 
-    # the pyvista simulation MUST run in the main thread, so we run the simulation in a separate if it's active
+    # the pyvista visualisation window MUST run in the main thread, so we run the simulation in a separate thread
     try:
         if args.visualisation:
             from simulation.visualisation import VisualisationManager

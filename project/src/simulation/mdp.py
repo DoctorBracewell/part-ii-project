@@ -47,9 +47,9 @@ class MDP:
                     attack_angle * attack_angle_multiplier,
                     roll_angle * roll_angle_multiplier,
                 ]
-                for thrust in np.arange(0.0, 1.0, 0.1, dtype=np.float64)
-                for attack_angle in np.arange(-1, 1, 0.2, dtype=np.float64)
-                for roll_angle in np.arange(-1, 1, 0.2, dtype=np.float64)
+                for thrust in MDPConfig.ACTION_THRUSTS
+                for attack_angle in MDPConfig.ACTION_ATTACK_ANGLE_RATES
+                for roll_angle in MDPConfig.ACTION_ROLL_ANGLE_RATES
             ]
         )
 
@@ -146,7 +146,7 @@ class MDP:
         hard_deck = SimulationConfig.HARD_DECK
         if z <= hard_deck:
             return SimulationConfig.PENALTY
-        return SimulationConfig.PENALTY / (z - hard_deck)
+        return 0.0
 
 
 def positive_maximum(
