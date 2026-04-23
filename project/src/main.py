@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # the pyvista visualisation window MUST run in the main thread, so we run the simulation in a separate thread
     try:
         if args.visualisation:
-            from simulation.visualisation import VisualisationManager
+            from visualisation import VisualisationManager
             from PyQt5.QtWidgets import QApplication
 
             vis = VisualisationManager(logger, SimulationConfig.AGENTS)

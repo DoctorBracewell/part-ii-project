@@ -121,7 +121,7 @@ if __name__ == "__main__":
                 raise SystemExit(1)
             SCENARIOS[:] = matching
         if args.visualise:
-            from simulation.visualisation import VisualisationManager
+            from visualisation import VisualisationManager
             from PyQt5.QtWidgets import QApplication
 
             vis = VisualisationManager(None, 2)  # type: ignore

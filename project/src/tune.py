@@ -1,5 +1,5 @@
 from simulation.simulation import SimulationManager, Simulation
-from simulation.visualisation import VisualisationManager
+from visualisation import VisualisationManager
 from configs import simulation as SimulationConfig
 from logging import Logger
 from numpy import linspace

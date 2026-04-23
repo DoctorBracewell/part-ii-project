@@ -61,10 +61,10 @@ SCENARIOS: list[Scenario] = [
     },
     {
         "id": 6,
-        "name": "pursuer_slower",
-        "positions": _pos(2000, 5000.0),
-        "velocities": [0.15 * M, 0.3 * M],
-        "azimuth_angles": HEAD_ON,
+        "name": "asymmetric",
+        "positions": [[5000.0, 4183.0, 3740.0], [5000.0, 5671.0, 6290.0]],
+        "velocities": [0.26 * M, 0.14 * M],
+        "azimuth_angles": [np.pi / 2, -np.pi / 2 + np.radians(53)],
     },
     {
         "id": 7,
