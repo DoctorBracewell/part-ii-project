@@ -4,7 +4,7 @@
 \label{sec:1.1}
 Pursuit-evasion problems model scenarios where agents compete to intercept or evade one another. They are a well-studied problem in aerospace systems research, with practical applications in autonomous air combat, unmanned aerial vehicle (UAV) swarm coordination, and airspace collision avoidance.
 
-Approaching real-time solutions to these problems is challenging: the state space of even a simple scenario is continuous and high-dimensional. Exact solutions are computationally intractable\cite{mcgrew2010}, but Markov Decision Process-based formulations provide a performant framework for sequential decision-making through efficient approximation\cite{bertram2d}, and have been shown to scale to multi-agent teams in continuous 3D state spaces\cite{bertram3d}.
+Approaching real-time solutions to these problems is challenging: the state space of even a simple scenario is continuous and high-dimensional. Exact solutions are computationally intractable\cite{mcgrew2010}, but Markov Decision Processes provide a performant framework for efficient approximation\cite{bertram2d}, and have been shown to scale to multi-agent teams in continuous 3D state spaces\cite{bertram3d}.
 
 This project implements and extends the FastMDP algorithm of Bertram et al.\cite{bertram2d} in a 3D kinematic simulation of fixed-wing aircraft. The primary focus is pursuit-evasion behaviour, investigated through novel reward functions and performance analysis. A key contribution is demonstrating that the same simulation and decision-making framework generalises to other problem spaces entirely, including collaborative flight and search-and-rescue, with changes only to the reward structure.
 

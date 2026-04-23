@@ -1,8 +1,28 @@
 \label{sec:5}
 
-Conclusions...
+Summary of Work
+I explored the fields of 
 
-\section{Conclusions Section 1}
-\label{sec:5.1}
+I evaluated the project and extensions with a focus on 
 
-Conclusions Section 1... 
+I have also considered the social and ethical implications of the specific pursuit-evasion behaviour and wider problem space in <Social Impacts>.
+
+Lessons Learnt
+Lessons learnt:
+Knowledgebase Expanded - MDPs, 3D kinematics, optimisation techniques in python.
+Developed ML-Based Thinking - being given parameters, and then defining my own reward functions to drive behaviour.
+Software Development Methodology - value of CI tooling, especially during heavy refactoring. Comprehensive testing and the pitfalls of it, 
+Understanding theory and mathematical models allows you to implement solutions . For MDPs specifically, understanding the structure allowed to make approximations (forward projection) of the optimal policy, and understand (prove?) why this is valid
+
+Starting over I would:
+Take a larger focus on test driven development instead of just comprehensive testing, and ensuring deep module functionality with simple interfaces.
+Possibly consider writing the code to take advantage of multicore and GPU applications for further optimisation
+
+
+
+Future Work
+<to mostly write after I have finished the main implementation?>
+
+<optimal experimental design?>
+
+The airflight simulation component can be separated from the pursuit-evasion problem space entirely and applied to different decision making processes. An example of this might be search-and-rescue, where we could redefine the state space of the MDP to track visited areas instead of opponent parameters and create rewards that drive movement towards unexplored locations. In this case the action space of the MDP is the same, but we could also utilise totally different decision processes such as neural networks.

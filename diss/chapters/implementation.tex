@@ -1,8 +1,152 @@
 \label{sec:3}
 
-Implementation
-
-\section{Implementation Section 1}
+\section{Repository Overview}
 \label{sec:3.1}
 
-d
+\begin{table}[htb]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l@{\hspace{1cm}}p{0.55\textwidth}}
+\textbf{Path} & \textbf{Description} \\
+\midrule
+\texttt{src/main.py} & Entry point for individual simulation runs. \\
+\texttt{src/tune.py} & Entry point for parameter-tuning simulation runs. \\
+\texttt{src/validate.py} & Entry point for behavioural and kinematic validation simulation runs. \\
+\midrule
+\texttt{src/simulation/simulation.py} & Simulation kinematics and lifecycle manager. \\
+\texttt{src/simulation/mdp.py} & MDP framework, FastMDP implementation and reward functions. \\
+\midrule
+\texttt{src/outputs/base.py} & Output manager and base output type component. \\
+\texttt{src/outputs/*.py} & Output type implementations (e.g. plot, video). \\
+\texttt{src/display.py} & Terminal dashboard set-up and lifecycle. \\
+\texttt{src/visualisation.py} & \texttt{pyvista} interactive 3D visualisation. \\
+\texttt{results/} & Directory for any produced outputs. \\
+\midrule
+\texttt{src/assets/} & Public-use models for use in 3D visualisation. \\
+\texttt{src/configs/} & Configuration values for project components. \\
+\texttt{tests/} & Unit tests for project components. \\
+\end{tabular}
+\caption{Repository structure}
+\label{tab:repo}
+\end{table}
+
+The simulation and machine learning functionality were coded from scratch without reliance on pre-existing code or external libraries. A selection of features from the python standard library and mainstream libraries were used:
+\begin{itemize}[nosep]
+    \item \texttt{rich} for clear and colourful terminal logs and interfaces.
+    \item \texttt{pytest} for unit test management.
+    \item \texttt{numpy} for efficient N-dimensional numerical computation.
+    \item \texttt{matplotlib} and \texttt{asciichartpy} for standard data plotting functionality.
+    \item \texttt{pyvistaqt} and \texttt{pyqt5} for the interactive 3D visualisation.
+    \item \texttt{numba} for JIT compilation of computationally-heavy python code to machine code at runtime (described further in Extensions).
+\end{itemize}
+In all cases, the relevant library provided generic functionality that assisted with performance or visualisation, and additional code was written to interoperate with the simulation implementation.
+
+The project supported configuration of many key values. Unless otherwise stated, all examples and evaluation in this dissertation use the base configuration included in Appendix C.
+
+Before beginning development, the project scaffolding was set up. A \texttt{pytest} configuration was set up with a dedicated test folder importing source components, and a GitHub Actions workflow was configured to run the full test suite automatically on every push to the remote repository. The \texttt{argparse} standard library was used in a \texttt{main.py} file to provide a base command-line interface for configuring and launching simulation runs.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/system.png}
+\caption{System architecture}
+\label{fig:system}
+\end{figure}
+
+Figure~\ref{fig:system} gives an architectural overview of the final system, explored in detail throughout this chapter.
+
+\section{Kinematic Model}
+\label{sec:3.2}
+The kinematic model was developed in incremental steps up to three-dimensionality with pursuit-evasion behaviour expanded at each stage. This allowed for smoother integration of other components (outputs, visualisations), and for the decision-making functionality to be examined and debugged in much simpler environments before presenting a full solution. The target was a full three-dimensional pseudo-6DoF model as described in the Preparation chapter.
+
+
+\subsection{One- and two- dimensionality}
+\label{sec:3.2.1}
+The aim of one-dimensional kinematics was primarily to validate the simulation timestepping framework and agent system.
+
+\subsection{Three-Dimensional}
+\label{sec:3.2.3}
+
+\subsection{Capturing}
+\label{sec:3.2.4}
+
+
+
+Milestones Development Timeline
+In my project proposal I laid out a number of development milestones that would help guide my progress and allow me to assess or adjust my implementations as I continued through the project. I used these as general guidelines for development, but here I am highlighting the actual major milestones that I hit upon throughout the implementation stage.
+
+<how to include GIT info in this>?
+
+Milestone 1, 6th November 2025: Repository setup, framework scaffolding and unit tests.
+<more detail>
+
+Milestone 2, 3rd December 2025: Outputs visualisation setup. Key to examining agent kinematic and decision making behaviour for next steps of development. <more detail>
+
+Milestone 3, 22nd December 2025: First implementation of the FastMDP algorithm and naive reward function setup to drive pursuit-evasion behaviour, initially in one-dimensional space.
+
+Milestone 4, 29th December 2025: 1-dimensional agent competition implementation.
+Milestone 5, 12th January 2026: 2-dimensional agent competition implementation.
+Milestone 6, 22nd January 2026: 3-dimensional agent competition implementation including 6DoF kinematic behaviour.
+These three milestones demonstrate the progression from a one-dimensional space to three-dimensional space. As described in Preparation this is a deviation from my proposal timeline, as completing the base implementation of FastMDP allowed me to progress incrementally and ensure that the pursuit-evasion behaviour remained valid.
+
+Milestone 7, 12th February 2026: Final reward functions
+
+Milestone 8, 31st March 2026: Finished parameter tuning investigations and behaviour validation implementations, fully completing the project core development.
+These were key for looking ahead to my evaluation stage, where I would need to have data on how I explored different dominant parameters and how they affected my pursuit-evasion decisions and agent behaviour validity.
+
+<extension milestones here, e.g>
+<Milestone 9, completed core evaluation/diss draft so explored extensions A, B, C> 
+
+Final Project Exploration
+After my project core was completed I generated a system diagram to demonstrate the components of the project.
+
+<diagram>
+
+`main.py`
+This is the primary entry point to the program, and is used for individual configurable simulation runs. It initialises logging and sets up a command-line interface to manage visualisations, outputs and displays.
+
+`simulation.py`
+This contains the simulation manager - a wrapper around simulation runs to manage step callbacks and parameter tuning - as well as the core simulation framework.
+
+`mdp.py`
+This contains my implementation of the FastMDP algorithm from [1]. The logic matches to the pseudo-code provided in the paper but the implementation is my own and leverages numpy arrays to.
+I took a totally separate approach to developing and refining my reward functions, described further in the Parameter Tuning section.
+
+
+The `argparse` standard library allowed me to set up an intuitive terminal interface to manage the additional aspects of the project outside of the simulation framework. Including this infrastructure was a key part of my software development methodology as it allowed me to explore and debug the computational aspects more comprehensively throughout development, described further in the Development Strategy section.
+
+
+The simulation manager is in charge of managing an individual simulation run. A run continues until it reaches a configurable maximum number of timesteps or only one agent remains uncaptured. The manager also accepts a set of callback functions that get called after each timestep, and are able to access the state of the simulation at that point.
+
+
+
+The final version of the positive and negative rewards are included here. We can see that each agent has access to the following parameters:
+Its own position
+Its enemy’s position
+Its enemy’s velocity
+
+Parameter Tuning
+As mentioned in Implementation I performed analysis of my model parameters to develop the reward functions.
+What parameters did I investigate
+What effect did they have
+Did I find any dominant parameters - show this
+Graphs tables of parameter trade-offs.
+
+(quickly): Multiple rounds of behaviour appraisal. I tweaked the reward functions especially, talk about journey from just position -> positions velocity -> headings etc all influenced by the parameter tuning and tracking. What did I see that led to my clear progression towards correctness.
+
+Development Strategy
+
+Agile Development.
+I adapted an agile methodology to suit my needs as a solo software developer. 
+
+Test Driven Development. 
+I decided I wanted to leverage generative AI tooling to help with developing my project, and decided to l
+
+Extensions
+Possibly explore other decision frameworks, e.g search and rescue or collaborative flight
+Could get a lot of marks for this! Breadth of the applicable of field.
+
+Contributions to the Field
+The project has applications to 
+Collaborative Strategies: A key extension of the project was to implement collaboration between teammate agents. Novel reward functions extended baseline research to 
+Automated Airflight: The project contains a comprehensive, vectorised simulation of 3-dimensional, pseudo-6DoF airflight, implemented in python and JIT compiled with numba for further optimisation. This codebase can be separated from the decision making process and utilised in other environments and problem spaces. This is expanded on in <Future Work>.
+JIT-Accelerated python: Empirical (plots, figure, functional performance etc.) analysis of application to continuous state space problems.
