@@ -30,20 +30,22 @@
 \label{tab:repo}
 \end{table}
 
-The simulation and machine learning functionality were coded from scratch without reliance on pre-existing code or external libraries. A selection of features from the python standard library and mainstream libraries were used:
+The simulation and machine learning functionality were coded from scratch without reliance on pre-existing code or external libraries. A selection of features from the Python standard library and mainstream libraries were used:
 \begin{itemize}[nosep]
     \item \texttt{rich} for clear and colourful terminal logs and interfaces.
     \item \texttt{pytest} for unit test management.
     \item \texttt{numpy} for efficient N-dimensional numerical computation.
     \item \texttt{matplotlib} and \texttt{asciichartpy} for standard data plotting functionality.
     \item \texttt{pyvistaqt} and \texttt{pyqt5} for the interactive 3D visualisation.
-    \item \texttt{numba} for JIT compilation of computationally-heavy python code to machine code at runtime (described further in Extensions).
+    \item \texttt{numba} for JIT compilation of computationally-heavy Python code to machine code at runtime (described further in Extensions).
 \end{itemize}
 In all cases, the relevant library provided generic functionality that assisted with performance or visualisation, and additional code was written to interoperate with the simulation implementation.
 
 The project supported configuration of many key values. Unless otherwise stated, all examples and evaluation in this dissertation use the base configuration included in Appendix C.
 
 Before beginning development, the project scaffolding was set up. A \texttt{pytest} configuration was set up with a dedicated test folder importing source components, and a GitHub Actions workflow was configured to run the full test suite automatically on every push to the remote repository. The \texttt{argparse} standard library was used in a \texttt{main.py} file to provide a base command-line interface for configuring and launching simulation runs.
+
+\Cref{fig:system} gives an architectural overview of the final system, explored in detail throughout this chapter.
 
 \begin{figure}[htb]
 \centering
@@ -52,24 +54,195 @@ Before beginning development, the project scaffolding was set up. A \texttt{pyte
 \label{fig:system}
 \end{figure}
 
-Figure~\ref{fig:system} gives an architectural overview of the final system, explored in detail throughout this chapter.
-
 \section{Kinematic Model}
 \label{sec:3.2}
 The kinematic model was developed in incremental steps up to three-dimensionality with pursuit-evasion behaviour expanded at each stage. This allowed for smoother integration of other components (outputs, visualisations), and for the decision-making functionality to be examined and debugged in much simpler environments before presenting a full solution. The target was a full three-dimensional pseudo-6DoF model as described in the Preparation chapter.
 
+In all cases, time was discretised with a \texttt{STEPS\_PER\_SECOND} configuration value to give a timestep variable $dt = 1 / \texttt{STEPS\_PER\_SECOND}$ for kinematic calculations. Each kinematic value can be updated as $x_{t+1} = x_t + \dot{x} \cdot dt$ through 
+semi-implicit Euler integration for multiple equations, following the discrete-time approach of Bertram et al.\cite{bertram3d}.
 
-\subsection{One- and two- dimensionality}
+\subsection{One- and Two-Dimensionality}
 \label{sec:3.2.1}
-The aim of one-dimensional kinematics was primarily to validate the simulation timestepping framework and agent system.
+The aim of one-dimensional kinematics was primarily to validate the simulation timestepping framework and agent system. The space is defined with a right-positive convention and agents are represented with a position and a velocity. The action space is a set of discrete acceleration (m/s$^2$) values $\{a_1, a_2, \dots, a_n\}$ with velocity (m/s) updated as $v_{t+1} = v_t + a_{\text{chosen}} \cdot dt$ and position (m) as $p_{t+1} = p_t + v_{t+1} \cdot dt$, all in base SI units. The system interfaced with a naive version of the \textit{FastMDP} algorithm described in \cref{sec:3.3} and a simple output system, and the resulting trajectories shown in \cref{fig:1d_plot} confirmed that a decision-making agent approaches its opponent.
 
-\subsection{Three-Dimensional}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{figures/visualisation/1d_plot.png}
+    \caption{1D Simulation Plot}
+    \label{fig:1d_plot}
+\end{figure}
+
+\review{do i need to do anymore work on this plot? its just here in its raw state as a development aid, and its effectivness as an visualiastion is considered in Evaluation (spoiler alert: its not great)}
+
+The codebase was initially object-oriented as determined in my design preparation. A \texttt{Simulation} singleton maintained a list of \texttt{Agent} objects that encapsulated their own kinematic state. This was a natural design given the conceptual clarity of individual agent entities. The decision-making framework also supported this design, as per-agent MDPs could be instantiated from a single class with relevant parameters. A \texttt{step()} method could be run each timestep to determine actions, apply them and update kinematic values for each agent. 
+
+It became apparent in early development that this design was incompatible with eventual intended optimisations. Individual agent object updates could not take advantage of NumPy's array broadcasting, and Numba's JIT compilation incurred a significant performance penalty when interfacing with arbitrary objects rather than raw procedures.
+
+The aim of two-dimensional kinematics was to more deeply explore the \textit{FastMDP} algorithm and possible reward functions. This would require a base level of optimisation, so I decided to refactor the codebase design to address the above issues. Kinematic calculations were extracted to a single \texttt{step\_agents()} method that accepted flat arrays of agent state and applied updates across all $N$ agents simultaneously using NumPy's vectorised operations. This was also a clean interface for later investigating Numba's no-Python JIT compilation mode (described in \cref{sec:3.4}).
+
+Two-dimensional kinematics introduced a heading parameter $\psi$ measured in radians, replaced acceleration with thrust value $n_x$ and expanded position and velocity to 2-vectors. The action space became $\{(\dot{\psi},n_x)\}$, and the numerical integration is shown in \cref{lst:step_agents_2d}.
+
+\begin{listing}[H]
+\begin{minted}{python}
+# input values: heading_rates, thrusts (applied across N agents)
+headings = headings + heading_rates * dt
+
+ax = thrusts * np.cos(headings)
+ay = thrusts * np.sin(headings)
+accelerations = np.stack((ax, ay), axis=-1)
+
+velocities = velocities + accelerations * dt
+positions = positions + velocities * dt
+
+return (positions, velocities, headings)
+\end{minted}
+\caption{2D kinematic updates via semi-implicit Euler integration using vectorised operations.}
+\label{lst:step_agents_2d}
+\end{listing}
+
+The 2D exploration of pursuit-evasion behaviour is described in \cref{sec:3.3}.
+
+\todo{video artefact of 2d pursuit evasion to include?}
+
+\subsection{Three-Dimensionality}
 \label{sec:3.2.3}
+
+Three-dimensional kinematics were introduced midway through the project, after a modular output system and the majority of the MDP framework had been implemented.
+
+The 3D model significantly expanded on the 2D implementation. The agent state grew to include speed $V$, attack angle $\alpha$, flight path angle $\gamma$, roll angle $\phi$, and azimuth angle $\psi$ in addition to position, following the pseudo-6DoF model described in the Preparation chapter. The action space became $\{(n_x, \dot{\alpha}, \dot{\phi})\}$ with thrust $n_x$, attack angle rate $\dot{\alpha}$ and roll angle rate $\dot{\phi}$ as inputs. $n_f = n_x \sin \alpha + L$ is derived from these, where $L$ is a configured lift constant.
+
+The rate calculations from Bertram and Wei \cite{bertram3d} are implemented directly:
+
+\begin{listing}[H]
+\begin{minted}{python}
+speed_rates = 
+    g * 
+    (thrusts * np.cos(attack_angles) - np.sin(flight_path_angles))
+
+flight_path_angles_rates = 
+    (g / speeds) * 
+    (nf * np.cos(roll_angles) - np.cos(flight_path_angles))
+
+azimuth_angles_rates = 
+    (g * nf * np.sin(roll_angles)) / 
+    (speeds * np.cos(flight_path_angles))
+\end{minted}
+\caption{3D kinematic rate calculations following the pseudo-6DoF model of \cite{bertram3d}.}
+\label{lst:kinematic_rates}
+\end{listing}
+
+Realistic kinematic bounds are enforced through value clipping after integration, with configurable minimums and maximums per-agent to compare parameters.
+The speed and angular state are resolved to a velocity vector for the position update:
+
+\begin{listing}[H]
+\begin{minted}{python}
+speeds = np.clip(speeds + speed_rates * dt, speed_mins, speed_maxs)
+
+vx = speeds * np.cos(flight_path_angles) * np.cos(azimuth_angles)
+vy = speeds * np.cos(flight_path_angles) * np.sin(azimuth_angles)
+vz = speeds * np.sin(flight_path_angles)
+velocities = np.stack((vx, vy, vz), axis=-1)
+positions = positions + velocities * dt
+\end{minted}
+\caption{Scalar speed and angles resolved to a 3D velocity vector for position update.}
+\label{lst:velocity_resolution}
+\end{listing}
+
+The \texttt{step\_agents()} function is fully compatible with the \texttt{@njit} decorator for Numba's no-Python mode, discussed further in \cref{sec:3.4}.
+
+\review{three dimensional output? video? plot? visualisation screenshot?}
 
 \subsection{Capturing}
 \label{sec:3.2.4}
 
+The capturing mechanic tied into the kinematic system. A simulation ends after a maximum number of timesteps, or when all but one agent has been captured. The capturing condition laid out during preparation involved being within a configurable distance of a control point 3 seconds behind an enemy, and aligned towards them within some limit. I found this did not result in accurate-looking capture during examination of the visualisation, so redesigned the criteria during development.
 
+The following must hold simultaneously true for $N$ consecutive timesteps for a capture to occur:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Distance check}: the Euclidean distance between agents falls within a capture radius $r$.
+    \item \textbf{Nose check}: the pursuer's nose direction is within 50\textdegree~of the evader.
+    \item \textbf{Asymmetry check}: the pursuer has a meaningfully better alignment than the evader, $a_\text{pursuer} > a_\text{evader} + 0.2$.
+\end{enumerate}
+
+Fragments of implementation can be seen in \cref{lst:captures}. These conditions also guided the eventual design of the reward functions in \cref{sec:3.4}.
+
+\begin{listing}[H]
+\begin{minted}{python}
+r_pe = evader_position - pursuer_position
+d = np.linalg.norm(r_pe)
+r_pe_hat, r_ep_hat = r_pe / d, -r_pe / d
+
+pursuer_alignment = np.dot(pursuer_nose, r_pe_hat)
+evader_alignment = np.dot(evader_nose, r_ep_hat)
+
+distance_check = d < SimulationConfig.CAPTURE_RADIUS
+nose_check = pursuer_alignment >= np.cos(np.deg2rad(50))
+asymmetry_check = pursuer_alignment > evader_alignment + 0.2
+\end{minted}
+\caption{Capture condition values and comparisons}
+\label{lst:captures}
+\end{listing}
+
+Captures are determined at each timestep within the main simulation loop:
+
+\begin{listing}[H]
+\begin{minted}{python}
+while self.simulation.timestep < SimulationConfig.MAX_TIMESTEPS:
+    self.simulation.step()
+    captures = self.simulation.determine_captures()
+
+    for captured_id, capturer_id in captures:
+        all_captures.append(
+            (self.simulation.timestep, captured_id, capturer_id)
+        )
+
+    for callback in callbacks:
+        callback(self.simulation)
+
+    if np.sum(self.simulation.active) <= 1:
+        break
+\end{minted}
+\caption{Simulation loop with capture-breaking logic and per-timestep callbacks}
+\label{lst:sim_loop}
+\end{listing}
+
+
+
+\section{Decision Making}
+\label{sec:3.3}
+
+\subsection{FastMDP}
+\label{sec:3.3.1}
+
+\subsection{Parameter Tuning}
+\label{sec:3.3.2}
+
+
+\subsection{Reward Functions}
+\label{sec:3.3.3}
+
+used python debugger!!
+
+\section{Output System}
+\label{sec:3.4}
+
+Being able to visualise simulation runs in various ways was a key requirement during development. Qualitative analysis of flight paths, trajectories and agent interactions helped me shape rewards and debug kinematic issues.
+
+\subsection{Terminal Dashboard}
+\label{sec:3.5}
+A terminal dashboard was created after implementing the core simulation timestep framework and one-dimensional kinematics. The core functionality was a panel to display key values of the. In addition two 
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/system.png}
+\caption{System architecture}
+\label{fig:system}
+\end{figure}
+
+
+\section{Extensions}
+\label{sec:3.5}
 
 Milestones Development Timeline
 In my project proposal I laid out a number of development milestones that would help guide my progress and allow me to assess or adjust my implementations as I continued through the project. I used these as general guidelines for development, but here I am highlighting the actual major milestones that I hit upon throughout the implementation stage.
@@ -148,5 +321,5 @@ Could get a lot of marks for this! Breadth of the applicable of field.
 Contributions to the Field
 The project has applications to 
 Collaborative Strategies: A key extension of the project was to implement collaboration between teammate agents. Novel reward functions extended baseline research to 
-Automated Airflight: The project contains a comprehensive, vectorised simulation of 3-dimensional, pseudo-6DoF airflight, implemented in python and JIT compiled with numba for further optimisation. This codebase can be separated from the decision making process and utilised in other environments and problem spaces. This is expanded on in <Future Work>.
-JIT-Accelerated python: Empirical (plots, figure, functional performance etc.) analysis of application to continuous state space problems.
+Automated Airflight: The project contains a comprehensive, vectorised simulation of 3-dimensional, pseudo-6DoF airflight, implemented in Python and JIT compiled with numba for further optimisation. This codebase can be separated from the decision making process and utilised in other environments and problem spaces. This is expanded on in <Future Work>.
+JIT-Accelerated Python: Empirical (plots, figure, functional performance etc.) analysis of application to continuous state space problems.

@@ -2,9 +2,9 @@
 
 \section{Related Work}
 \label{sec:2.1}
-Pursuit-evasion problems - where agents compete to capture or escape one another - were first formalised through a framework for reasoning about intelligent adversaries by Isaacs\cite{isaacs1965} and remain an active area of research across robotics, autonomous systems and aerospace\cite{weintraub2020}.
+Pursuit-evasion problems - where agents compete to capture or escape one another - were first formalised through a framework for reasoning about intelligent adversaries by Isaacs\cite{isaacs1965} and remain an active area of research\cite{weintraub2020}.
 
-Determining optimal strategies in real-time or close-to real time is computationally challenging as the problem grows in dimensionality - the state-action space becomes too large to represent with traditional exact methods\cite{bertsekas1996,powell2007}. This ‘curse of dimensionality’\cite{bellman1957} motivates a variety of approximation approaches. McGrew et al.\cite{mcgrew2010} demonstrated an approximate dynamic programming (ADP) approach to 1v1 air combat, involving a number of additional reward-shaping techniques. While effective, this approach is limited to 2D level flight at fixed velocity, does not approach the infinite state space of continuous flight\cite{bertram3d}, and does not scale to multi-agent teams. These limitations motivate a different approach for multi-agent pursuit-evasion in a continuous 3D environment.
+Determining optimal strategies in real-time or close-to real time is computationally challenging as the problem grows in dimensionality - the state-action space becomes too large to represent with traditional exact methods\cite{bertsekas1996,powell2007}. This ‘curse of dimensionality’\cite{bellman1957} motivates a variety of approximation approaches. McGrew et al.\cite{mcgrew2010} demonstrated an approximate dynamic programming (ADP) approach to 1v1 air combat, involving a number of additional reward-shaping techniques. While effective, this approach is limited to 2D level flight at fixed velocity, does not approach the infinite state space of continuous flight\cite{bertram3d}, and did not scale to multi-agent teams. These limitations motivate a different approach for multi-agent pursuit-evasion in a continuous 3D environment.
 
 Bertram et al.\cite{bertram2d} proposed a novel algorithm to closely approximate the solution to a class of MDPs with sparse rewards which they term FastMDP. Instead of well-known value iteration or policy iteration methods\cite{bellman1957,sutton1998}, FastMDP reframes the MDP as a graph and computes the value function from individual reward sources, combining positive and negative peaks into a single surface. The algorithm has no dependency on the size of the state space, making it suitable for continuous spaces and real-time computation. This was initially demonstrated in a 2D UAV path planning context, showing scaling with the number of obstacles.
 
@@ -19,7 +19,7 @@ I had experience with building and applying Markov models in Python (in particul
 
 I did not have experience with pursuit-evasion problems or explicit kinematic models, but I had written Java code to simulate physical three-dimensional systems before with a focus on linear algebra and vector mathematics rather than aerodynamics.
 
-I was confident with the Python programming language and the tooling around it including virtual environments, the pip package manager and the pytest testing framework. I had real-world corporate experience in managing large python projects, and was also comfortable working with the Git version control system and GitHub actions for development workflows.
+I was confident with the Python programming language and the tooling around it including virtual environments, the pip package manager and the pytest testing framework. I had real-world corporate experience in managing large Python projects, and was also comfortable working with the Git version control system and GitHub actions for development workflows.
 
 The final implementations are not based on existing codebases or machine learning libraries, but I identified similar projects from related work and examined their algorithms and pseudocode to influence my work.
 
@@ -37,13 +37,13 @@ Kinematics - TODO
 Talk about what I did instead of jumping straight into writing code - reference the papers and learning materials I used to understand MDPs, show my architecture diagram for the codebase (and then later discuss how this changed throughout implementation). What design decisions did I make early on? 
 Pursuers vs evaders vs mutli-agents etc? 
 Similar to above, codebase design decisions - and TOOL justificateionts!.
-Full OOP vs half-OOP with vectorised arrays. Very clear structure of the simulation vs optimisation with less abstraction opportunities. numba doesn’t lend itself well to OOP (or most python-writing style) so that extension required some restructuring. Manager class was still used, but I extracted key optimisation methods like kinematic calculations for JIT compilation and utilised arrays instead of classes to represent agents for vectorised computation.
+Full OOP vs half-OOP with vectorised arrays. Very clear structure of the simulation vs optimisation with less abstraction opportunities. numba doesn’t lend itself well to OOP (or most Python-writing style) so that extension required some restructuring. Manager class was still used, but I extracted key optimisation methods like kinematic calculations for JIT compilation and utilised arrays instead of classes to represent agents for vectorised computation.
 It also meant that I wouldn’t have to serialise/deserialise between Agent classes and raw data for forward projection.
-Other additional complexities could be numba library, talking about additional challenges involved in learning in-depth compilation strategies for python and how these can be translated to JIT C compilation and how this limits normal python stdlib.
+Other additional complexities could be numba library, talking about additional challenges involved in learning in-depth compilation strategies for Python and how these can be translated to JIT C compilation and how this limits normal Python stdlib.
 How did I know it would be a good fit?
 Need to motivate that I explored the components enough to know it would work
 Markov Decision Process
-Settlted on python because - experience working with it, numpy and numba for efficient computation, comfortable with libraries like matplotlib or pyvista for visualisations.
+Settlted on Python because - experience working with it, numpy and numba for efficient computation, comfortable with libraries like matplotlib or pyvista for visualisations.
 Dynamically typed so sutitable.
 Anticipated challenges at the start: visualisations, performance/scalability, scope creep? For each of these describe how I anticipated and explored to make sure there were no hidden surprises.
 dfasd
