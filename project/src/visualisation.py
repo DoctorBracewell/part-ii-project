@@ -22,14 +22,11 @@ class VisualisationManager:
         self.capture_points: list[pv.Actor] = []
         self.texts: list[pv.Actor] = []
         self.velocity_arrows: list[pv.Actor] = []
-
-        # Written by sim thread, read by Qt timer — plain Python types, GIL-safe
         self._show_speeds = False
         self._agent_data: list[tuple[np.ndarray, float, bool]] = []
 
         self.setup_scene(agent_count)
 
-        # One QLabel per agent, overlaid on the render widget
         label_style = (
             "color: black; font-size: 12pt; font-weight: bold;"
             " background: rgba(255,255,255,180); padding: 3px; border-radius: 3px;"
@@ -42,7 +39,6 @@ class VisualisationManager:
             label.hide()
             self._speed_labels.append(label)
 
-        # Qt timer fires on the Qt thread — safe to update labels and query the renderer here
         self._text_timer = QtCore.QTimer()
         self._text_timer.timeout.connect(self._refresh_speed_labels)
         self._text_timer.start(50)
@@ -82,9 +78,6 @@ class VisualisationManager:
                 color=VisualisationConfig.COLOURS[i % len(VisualisationConfig.COLOURS)],
             )
 
-            # Velocity arrow — pre-created and hidden; shown/hidden via opacity only.
-            # direction=(1,0,0) so the arrow starts pointing in +x with identity orientation,
-            # matching the jet mesh which ends up in +x after its rotate_z(90).
             arrow_mesh = pv.Arrow(
                 start=(0, 0, 0),
                 direction=(1, 0, 0),
@@ -98,9 +91,8 @@ class VisualisationManager:
             self.velocity_arrows.append(vel_arrow)
 
     def _refresh_speed_labels(self):
-        """Qt timer callback — runs on the Qt thread. Safe to query renderer and update Qt widgets."""
+        # run renderer on Qt thread
         renderer = self.plotter.renderer
-        # Qt sizes are in logical pixels; VTK display coords are in device pixels on Retina
         dpr = self.plotter.devicePixelRatioF()
         win_h = self.plotter.size().height()
 
@@ -109,28 +101,24 @@ class VisualisationManager:
                 label.hide()
                 continue
 
-            # Project world position (50m above agent) to display coordinates
             above = pos + np.array([0.0, 0.0, 50.0])
             renderer.SetWorldPoint(above[0], above[1], above[2], 1.0)
             renderer.WorldToDisplay()
             dx, dy, _ = renderer.GetDisplayPoint()
 
-            # Convert device pixels → logical pixels, flip y (VTK: bottom-left, Qt: top-left)
+            # pixel conversion
             lx = dx / dpr
             ly = win_h - dy / dpr
 
-            # Update text first so adjustSize gives the correct dimensions
+            # upate text size
             label.setText(f"{speed:.0f} m/s")
             label.adjustSize()
-
-            # Centre label horizontally, sit its bottom edge at the projected point
             label.move(int(lx - label.width() / 2), int(ly - label.height()))
             label.show()
             label.raise_()
 
     def update(self, simulation: Simulation):
-        # Update jet positions and orientations
-        for i, plane in enumerate(self.planes[:simulation.N]):
+        for i, plane in enumerate(self.planes[: simulation.N]):
             plane.SetPosition(simulation.positions[i])  # type: ignore
             plane.SetOrientation(
                 *get_pyvista_orientation(
@@ -147,7 +135,7 @@ class VisualisationManager:
         for i, capture_point in enumerate(self.capture_points):
             capture_point.SetPosition(simulation.capture_points[i])  # type: ignore
 
-        # Zoom check — compare camera distance to nearest active agent
+        # camera zoom check
         camera_pos = np.array(self.plotter.camera.position)
         min_dist = min(
             (
@@ -159,8 +147,7 @@ class VisualisationManager:
         )
         zoomed_in = min_dist < 6000
 
-        # Velocity arrows — only safe property setters, no add/remove
-        for i, arrow in enumerate(self.velocity_arrows[:simulation.N]):
+        for i, arrow in enumerate(self.velocity_arrows[: simulation.N]):
             if simulation.active[i] and zoomed_in:
                 arrow.SetPosition(simulation.positions[i])
                 arrow.SetOrientation(
@@ -178,7 +165,11 @@ class VisualisationManager:
         # Hand data to Qt timer — plain Python writes, GIL-safe
         self._show_speeds = zoomed_in
         self._agent_data = [
-            (simulation.positions[i].copy(), float(simulation.speeds[i]), bool(simulation.active[i]))
+            (
+                simulation.positions[i].copy(),
+                float(simulation.speeds[i]),
+                bool(simulation.active[i]),
+            )
             for i in range(simulation.N)
         ]
 

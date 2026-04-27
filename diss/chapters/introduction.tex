@@ -15,24 +15,24 @@ The project is implemented in Python 3.13.2, using \texttt{numpy} and \texttt{nu
 The core aims of this project are to:
 \begin{enumerate}[noitemsep]
     \item Implement a kinematically accurate 3D simulation of fixed-wing aircraft using a pseudo-6DoF model.
-    \item Implement the FastMDP algorithm from scratch to drive behaviours between competing or collaborating agents.
-    \item Design and investigate reward functions that produce valid pursuit-evasion behaviour.
+    \item Implement the FastMDP algorithm to drive behaviours between competing agents.
+    \item Design reward functions that produce valid pursuit-evasion behaviour.
     \item Analyse the engineering performance of the simulation and decision-making framework.
 \end{enumerate}
 
 After completing the core project, the following extensions were investigated:
 
 \begin{enumerate}[resume,noitemsep]
-    \item Scale the simulation from 1v1 encounters to multi-agent teams of arbitrary size.
-    \item Demonstrate that the simulation and decision-making framework is applicable to alternative problem spaces beyond pursuit-evasion, requiring changes only to the reward structure.
+    \item Scale the simulation from 1v1 encounters to multi-agent teams.
+    \item Demonstrate that the decision-making framework is applicable to alternative problem spaces, requiring changes only to the reward structure.
 \end{enumerate}
 
 \section{Success Criteria}
 \label{sec:1.3}
 The following criteria were used to evaluate the success of the project:
 \begin{enumerate}
-    \item \textbf{Behavioural validity}. The implemented FastMDP algorithm produces valid pursuit-evasion behaviour, defined according to a series of per-timestep constraints. This is the primary functional goal of the project and directly validates the correctness of the reward functions and decision-making framework.
-    \item \textbf{Kinematic validity}. Agent kinematics remain within physically realistic bounds throughout all simulation runs, including velocity, turn rate and altitude constraints. This validates the correctness of the kinematic model independently of the decision-making layer.
+    \item \textbf{Behavioural validity}. The implemented FastMDP algorithm produces valid pursuit-evasion behaviour. This is the primary functional goal of the project and directly validates the correctness of the decision-making and reward framework.
+    \item \textbf{Kinematic validity}. Agent kinematics remain within realistic bounds across all simulation runs, including velocity, turn rate and altitude constraints. This validates the correctness of the kinematic model independently of the decision-making framework.
     \item \textbf{Computational performance}. Agent actions are computed within a timeframe suitable for real-time simulation with appropriate optimisations investigated and evaluated.
     \item \textbf{Extension validity}. Multi-agent teams and alternative problem spaces produce valid and consistent behaviour under the same framework.
 \end{enumerate}
