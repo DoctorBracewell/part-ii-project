@@ -1,3 +1,52 @@
 \label{sec:B}
 
-Appendix B...
+The following table lists all configuration values used in the base project configuration. 
+
+\begin{longtable}{l@{\hspace{1cm}}l@{\hspace{1cm}}p{0.35\textwidth}}
+\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
+\midrule
+\endhead
+\multicolumn{3}{l}{\textit{Simulation (\texttt{configs/simulation.py})}} \\
+\midrule
+\texttt{MAX\_TIMESTEPS} & 4000 & Maximum timesteps per simulation run. \\
+\texttt{AGENTS} & 7 & Number of agents in the simulation. \\
+\texttt{STEPS\_PER\_SECOND} & 20 & Timesteps per simulated second. \\
+\texttt{HARD\_DECK} & 0 m & Minimum altitude. \\
+\texttt{WIDTH / HEIGHT / LENGTH} & 10,000 m & Arena dimensions. \\
+\texttt{PENALTY} & $1 \times 10^9$ & Hard deck reward penalty. \\
+\texttt{CAPTURE\_RADIUS} & 500 m & Distance threshold for capture. \\
+\texttt{CAPTURE\_POINT\_STEPS} & 40 & Timesteps for capture point history. \\
+\texttt{MAX\_GS} & 9.0 & Structural G limit. \\
+\texttt{CORNER\_VELOCITY} & 80.0 m/s & Speed at which maximum G becomes available. \\
+\texttt{K\_DRAG} & 0.05 & Induced drag coefficient. \\
+\texttt{MACH} & 343 m/s & Speed of sound. \\
+\midrule
+\multicolumn{3}{l}{\textit{MDP (\texttt{configs/mdp.py})}} \\
+\midrule
+\texttt{FORWARD\_PROJECTION\_STEPS} & 3 & Steps used in forward projection. \\
+\texttt{ACTION\_THRUSTS} & [0.0 -- 0.9] $\times$ 10 & Thrust action values. \\
+\texttt{ACTION\_ATTACK\_ANGLE\_RATES} & [$-$1.0 -- 0.8] $\times$ 10 & Attack angle rate action values. \\
+\texttt{ACTION\_ROLL\_ANGLE\_RATES} & [$-$1.0 -- 0.8] $\times$ 10 & Roll angle rate action values. \\
+\midrule
+\multicolumn{3}{l}{\textit{Agent Parameters (\texttt{configs/parameters.py})}} \\
+\midrule
+\texttt{velocity\_mins} & 0.1 Mach & Minimum airspeed per agent. \\
+\texttt{velocity\_maxs} & 0.3 Mach & Maximum airspeed per agent. \\
+\texttt{azimuth\_rate\_mins} & $-$1.3 rad/s & Minimum azimuth rate per agent. \\
+\texttt{azimuth\_rate\_maxs} & 1.3 rad/s & Maximum azimuth rate per agent. \\
+\texttt{attack\_angle\_mins} & 0.09 rad & Minimum attack angle per agent. \\
+\texttt{attack\_angle\_maxs} & 0.52 rad & Maximum attack angle per agent. \\
+\texttt{thrust\_ratio} & 10.0 & Thrust action scaling per agent. \\
+\texttt{attack\_angle\_ratio} & 1.5 & Attack angle rate scaling per agent. \\
+\texttt{roll\_angle\_ratio} & 1.0 & Roll angle rate scaling per agent. \\
+\midrule
+\multicolumn{3}{l}{\textit{Output (\texttt{configs/output.py})}} \\
+\midrule
+\texttt{DPI} & 300 & Plot output resolution. \\
+\texttt{FIGSIZE} & (6, 6) & Plot figure size in inches. \\
+\caption{Base configuration values.}
+\label{tab:config}
+\end{longtable}

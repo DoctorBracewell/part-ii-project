@@ -14,7 +14,7 @@ A showcase of the final simulation is presented below. The scenario is a mid-com
 
 \section{Functional Evaluation}
 \label{sec:4.1}
-Throughout implementation I had been iteratively adjusting the FastMDP algorithm and reward functions to drive desirable behaviour. As described in the Implementation chapter this process was driven partly by qualitative analysis of the flight paths and partly by manual simulated annealing of my reward function parameters. 
+Throughout implementation, I had been iteratively adjusting the FastMDP algorithm and reward functions to drive desirable behaviour. As described in the Implementation chapter this process was driven partly by qualitative analysis of the flight paths and partly by sensitivity analysis of the kinematic parameters. 
 After completing the project core, I wanted to more strictly examine the pursuit and evasion behaviour of the agents to inform the success of the project.
 
 I designed a set of 1v1 validation scenarios, each defined by a specific combination of initial values and agent parameter ratios, ranging in complexity. Each scenario was run for up to 1000 timesteps or until a capture, and at each timestep the agent values were recorded and checked against predefined validation criteria. A scenario is considered valid if all tracked values satisfy these criteria throughout the run. The exact values of the scenarios and their validation results can be found in Appendix C. 
@@ -47,7 +47,7 @@ A scenario is considered behaviourally valid if:
     \item $d_{\min} < d_0$ OR capture occurs during the run.
 \end{enumerate}
 
-Together these ensure that the reward functions produce meaningful interaction -- a non-increasing $d(t)$ at some point implies at least one agent is closing on the other's position, and $d_{\min} < d_0$ confirms this response results in net closure over the course of the run.
+Together these ensure that the reward functions produce meaningful interaction --- a non-increasing $d(t)$ at some point implies that at least one agent is closing on the other's position, and $d_{\min} < d_0$ confirms this results in net closure over the course of the run.
 
 
 If all agents are kinematically valid, and all pairs of agents are behaviourally valid, then the scenario is valid.
@@ -57,7 +57,7 @@ If all agents are kinematically valid, and all pairs of agents are behaviourally
 
 Each scenario was run and the kinematic and behavioural validity criteria evaluated at each timestep. Timestep-series plots were produced to demonstrate key values and properties for each validity.
 
-The symmetric scenarios (1, 2, 3, 5) produce the same kinematic plots for both agents, which is expected - identical initial values and MDP parameters should produce identical behaviour, and any asymmetry would indicate an unintended bias.
+The symmetric scenarios (1, 2, 3, 5) produce the same kinematic plots for both agents, which is expected --- identical initial values and MDP parameters should produce identical behaviour, and any asymmetry would indicate an unintended bias.
 
 \begin{figure}[htb]
     \centering
@@ -78,7 +78,7 @@ The symmetric scenarios (1, 2, 3, 5) produce the same kinematic plots for both a
     \label{fig:scenario1}
 \end{figure}
 
-Scenario 1 is the simplest case - the agents are initialised head-on at large separation, and we see them thrust up to maximum speed in \cref{fig:scenario1_kinematic} and their distance decrease monotonically in \cref{fig:scenario1_behavioural}.
+Scenario 1 is the simplest case --- the agents are initialised head-on at large separation, and we see them thrust up to maximum speed in \cref{fig:scenario1_kinematic} and their distance decrease monotonically in \cref{fig:scenario1_behavioural}.
 This scenario primarily validates kinematic correctness rather than complex decision-making as straight-line flight could also be achieved in the absence of any actions.
 
 A more interesting example is scenario 6, designed to have the most asymmetric initial values.
@@ -103,15 +103,16 @@ A more interesting example is scenario 6, designed to have the most asymmetric i
 The scenario ends with a capture at timestep 712, expected when one agent begins in a more favourable position. Quantitatively we can see that the kinematic and distance values meet the criteria for validity even with complex manoeuvres and arbitrary initial conditions. Qualitative examination indicates periods of overcorrection, shown in the altitude crossovers from timestep $\sim$330 onwards in \cref{fig:scenario6_kinematic} and the separation bounces in \cref{fig:scenario6_behavioural}. \\
 This overcorrecting fits with two interacting components of the system. The positive and negative rewards are based on alignment and scale inversely with distance, so they interact to encourage closing-in encircling where agents approach each other without offering a capture. At close ranges, agents can exploit this by changing their own velocity alignment to reposition their opponent in their front or rear hemisphere, which is an unexpected limitation in the reward function structure that leads to the bouncing-away effect. Additionally, the short forward projection horizon means the MDP cannot anticipate the full trajectory, so agents thrust up to full speed to approach faster but cannot correct in time before overshooting.
 
-In scenario 3, agents are initialised facing directly away from each other. Rather than immediately maximising their turn rates twoards towards each other, they use a combination of lift and more gradual turns, likely again due to the reward functions penalising ???.
+In scenario 3, agents are initialised facing directly away from each other. Rather than immediately maximising their turn rates towards each other, they use a combination of lift and more gradual turns. This is consistent with the reward function structure — agents initialised facing away are already in each other's rear hemispheres which gives higher reward, so the MDP favours slower reorientation whilst closing distance.
 
 \begin{figure}[htb]
+    \centering
     \includegraphics{figures/validation/7_altitude.png}
-    \caption{Scenario 6 (facing $\sim$53\textdegree~off-axis, 14:26 speed ratio, lateral and altitude separation).}
+    \caption{Scenario 7 (facing head-on, equal speed, medium separation, low altitude).}
     \label{fig:scenario7_altitude}
 \end{figure}
 
-Scenario 7 failed kinematic validity - the agents dipped below the hard deck of $z = 0$m at timestep $\sim$700. This is a reward function failure, as the hard-coded hard-deck penalty did not prevent the altitude drop. It is likely not an issue of weight as the penalty ($1 \times 10^9$) is greater than the standard rewards.
+Scenario 7 failed kinematic validity --- the agents dipped below the hard deck of $z = 0$m at timestep $\sim$700. This is a reward function failure, as the hard-coded hard-deck penalty did not prevent the altitude drop. It is likely not an issue of weight as the penalty ($1 \times 10^9$) is greater than the standard rewards.
 
 \subsection{Results Summary}
 \label{sec:4.1.3}
@@ -121,31 +122,32 @@ All scenarios passed the behavioural validity criteria, and all but one passed k
 Since the reward functions are mostly alignment-based, turning artefacts are observed especially at close ranges. The positive reward
 
 \begin{equation}
-    R^+ = \frac{\hat{v}_{self} \cdot \hat{r} + \hat{r} \cdot \hat{v}_{enemy}}{d}
-\end{equation}
+R^+ = \frac{\hat{v}_{self} \cdot \hat{r} + \hat{r} \cdot \hat{v}_{enemy}}{d}
 \label{eq:4.1}
+\end{equation}
 
 is maximised when the agent points towards the opponent and the opponent points away. The negative reward
 
 \begin{equation}
-    R^- = \frac{-\hat{r} \cdot \hat{v}_{enemy} + \hat{r} \cdot \hat{v}_{enemy}}{d}
-\end{equation}
+R^- = \max\left(0,\ \frac{(-\hat{r}_{pe}) \cdot \hat{v}_{enemy}}{d}\right)
 \label{eq:4.2}
+\end{equation}
 
-penalises the inverse configuration. They both scale with $1/d$, so at close ranges small changes in velocity direction produce large changes in reward, incentivising sharp movements rather than smooth adjustments. Furthermore, agents can increase their positive rewards by adjusting their own alignments relative to their opponent, producing the bouncing behaviour observed in scenarios 3 and 6.
+penalises configurations where an opponent is actively oriented towards the agent. They both scale with $1/d$, so at close ranges small changes in velocity direction produce large changes in reward, incentivising sharp movements rather than smooth adjustments. Agents can also increase their positive rewards by adjusting their own alignments relative to their opponent, producing the bouncing behaviour observed in scenarios 3 and 6.
 
 The hard-deck penalty did not prevent altitude violations, possibly due to the forward projection horizon not considering states near $z = 0$ and not encountering the penalty during planning. 
 
 \section{Engineering Performance}
 \label{sec:4.2}
 
+Talk about Numba prange and parallelTrue.
 
 \section{Visualisation Evaluation}
 \label{sec:4.3}
 
 The output and visualisation systems are evaluated with reference to Tufte's ideas across \textit{The Visual Display of Quantitative Information}\cite{tufte1983} and \textit{Envisioning Information}\cite{tufte1990}. Throughout the project the aim was to produce results that could inform quantitative and qualitative analysis across implementation and evaluation.
 
-\begin{figure}[htb]
+\begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \centering
@@ -160,14 +162,18 @@ The output and visualisation systems are evaluated with reference to Tufte's ide
         \caption{2D Simulation Plot}
         \label{fig:2d_plot}
     \end{subfigure}
+    \caption{Simulation plots for one- and two-dimensional kinematics.}
     \label{fig:12dplots}
 \end{figure}
 
-\review{I need to do a bit more work on these plots possibly - axis labels, maybe background grid lines, colour legends for 2d... but still evaluate as a failure of principle application}
+\review{I need to do a bit more work on these plots possibly? - axis labels, maybe background grid lines, colour legends for 2d... but still evaluate as a failure of principle application}
 
-Static plots were produced for one and two-dimensional kinematics. Whilst suitable, the outputs did not fully apply Tufte's layering and separation principle\cite{tufte1983} - in particular the 1D plot direction arrows were not clearly separable from the movement lines (\cref{fig:1d_plot}). This is a consequence of the plots being quickly-produced development aids rather than full results.
+Static plots were produced for one and two-dimensional kinematics. Whilst suitable, the outputs did not fully apply Tufte's layering and separation principle\cite{tufte1983} --- in particular the 1D plot direction arrows were not clearly separable from the movement lines (\cref{fig:1d_plot}). This is a consequence of the plots being quickly-produced development aids rather than full results.
 
-\begin{figure}[htb]
+The initial three-dimensional plot (\cref{fig:3d_plot}) illustrated Tufte's \textit{Escaping Flatland}\cite{tufte1990} challenge for representing high-dimension data. Even transforming this into a video format to animate trajectory over time was still limited by a fixed camera perspective that limited spatial understanding \review{need a link to a video artefact of this?}.
+Instead, I turned to Shneiderman's mantra to implement the interactive visualisation --- ``overview first, zoom and filter, then details on demand'' \cite{shneiderman1996}. The default view provides an \textit{overview} of the full arena, but the user can \textit{zoom} and pan to \textit{filter} to particular agents, and additional velocity \textit{details} appear at close-enough ranges. This addressed the flatland problem by allowing the user to freely reposition their orientation instead of being limited to a single perspective. The velocity details also support Tufte's Micro/Macro readings, where the relative agent positions are primarily readable in the overview perspective and more granular details become available on zoom.
+
+\begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \centering
@@ -182,13 +188,13 @@ Static plots were produced for one and two-dimensional kinematics. Whilst suitab
         \caption{3D Simulation Visualisation (with additional velocity details)}
         \label{fig:3d_visual}
     \end{subfigure}
+    \caption{Three-dimensional simulation output: static plot and interactive visualisation.}
     \label{fig:3ds}
 \end{figure}
 
-The initial three-dimensional plot (\cref{fig:3d_plot}) illustrated Tufte's \textit{Escaping Flatland}\cite{tufte1990} challenge for representing high-dimension data. Even transforming this into a video format to animate trajectory over time was still limited by a fixed camera perspective that limited spatial understanding \review{need a link to a video artefact of this?}.
-Instead, I turned to Shneiderman's mantra to implement the interactive visualisation - ``overview first, zoom and filter, then details on demand'' \cite{shneiderman1996}. The default view provides an \textit{overview} of the full arena, but the user can \textit{zoom} and pan to \textit{filter} to particular agents, and additional velocity \textit{details} appear at close-enough ranges. This addressed the flatland problem by allowing the user to freely reposition their orientation instead of being limited to a single perspective. The velocity details also support Tufte's Micro/Macro readings, where the relative agent positions are primarily readable in the overview perspective and more granular details become available on zoom.
+The terminal dashboard provides real-time data throughout simulation runs. The \textit{Values} panel (\cref{fig:values_panel}) shows key simulation state and uses colouring principles to separate labels from values. This was useful for comparing agent values at different points in the simulation. The lightweight \textit{Preview} panel (\cref{fig:preview_panel}) provides a two-dimensional overview of agent positions and azimuth angle headings. This is a compromise on the flatland problem: key kinematic properties are projected orthographically into two dimensions to trade  spatial accuracy with development speed. For example, this preview allowed for immediate verification of correct initial headings for the validation scenarios used in \cref{sec:4.1} without the computational load of running the interactive visualisation. Each agent's symbol is represented with a different colour, further implementing Tufte's colouring principles to draw clear distinctions between entities.
 
-\begin{figure}[htb]
+\begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \centering
@@ -203,9 +209,9 @@ Instead, I turned to Shneiderman's mantra to implement the interactive visualisa
         \caption{\textit{Preview} Panel}
         \label{fig:preview_panel}
     \end{subfigure}
+    \caption{Terminal dashboard panels showing real-time simulation state.}
     \label{fig:tui_panels}
 \end{figure}
-The terminal dashboard provides real-time data throughout simulation runs. The \textit{Values} panel (\cref{fig:values_panel}) shows key simulation state and uses colouring principles to separate labels from values. This was useful for comparing agent values at different points in the simulation. The lightweight \textit{Preview} panel (\cref{fig:preview_panel}) provides a two-dimensional overview of agent positions and azimuth angle headings. This is a compromise on the flatland problem: key kinematic properties are projected orthographically into two dimensions to trade  spatial accuracy with development speed. For example, this preview allowed for immediate verification of correct initial headings for the validation scenarios used in \cref{sec:4.1} without the computational load of running the interactive visualisation.
 
 \section{Extension Validity}
 \label{sec:4.4}
@@ -221,7 +227,7 @@ The GitHub actions CI testing pipeline was robust and ran automatically on every
 Coverage suffered during periods of heavy refactoring, especially when trying to introduce optimisation libraries including \texttt{numpy} and \texttt{numba}. These changed the core structure of the code, and invalidated existing tests because they no longer matched interfaces or mocked objects. Further consideration could have been taken when designing module interfaces, or planning the progression from 1D to 3D simulation to ensure that a test suite could evolve alongside the codebase and provide more value. \\
 The typical workflow was to implement a component or refactor an existing module, verify it through manual program runs, and then generate tests to confirm its behaviour. Tests became indicators of previous correctness rather than the basis for refactors and new functionality.
 
-The pipeline did catch actual issues - for example, a failing run on commit \texttt{68e85c6} identified that the output manager did not support the newly-integrated pyvista visualisation outputs, but overall a key lesson learnt was to take a more test-driven methodology.
+The pipeline did catch actual issues --- for example, a failing run on commit \texttt{68e85c6} identified that the output manager did not support the newly-integrated pyvista visualisation outputs, but overall a key lesson learnt was to take a more test-driven methodology.
 
 \review{was planning on making a coverage graph over time but GitHub has deleted my "historical" test report build artifacts :( }
 

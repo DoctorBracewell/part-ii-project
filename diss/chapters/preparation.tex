@@ -2,17 +2,20 @@
 
 \section{Related Work}
 \label{sec:2.1}
-Pursuit-evasion problems - where agents compete to capture or escape one another - were first formalised through a framework for reasoning about intelligent adversaries by Isaacs\cite{isaacs1965} and remain an active area of research\cite{weintraub2020}. Well-known examples include wolf and sheep, or 2d continuous, or 3d continuous.
+Pursuit-evasion problems were first formalised through a framework for reasoning about intelligent adversaries by Isaacs\cite{isaacs1965} and remain an active area of research. Well-known examples include the discrete two-dimensional `wolf-and-sheep' puzzle, where a wolf agent attempts to corner a sheep agent on a chessboard, or the continuous `lion-and-man' problem which asks whether a pursuer can always catch an identical evader in a bounded arena. The expansion into an aerospace environment introduces additional kinematic modelling complexity and increases the available parameters that drive pursuit or evasion behaviour.
 
-Determining optimal strategies in real-time or close-to real time is computationally challenging as the problem grows in dimensionality - the state-action space becomes too large to represent with traditional methods\cite{bertsekas1996,powell2007}. This ‘curse of dimensionality’\cite{bellman1957} motivates a variety of approximation approaches. McGrew et al.\cite{mcgrew2010} demonstrated an approximate dynamic programming (ADP) approach to 1v1 air combat, involving a number of additional reward-shaping techniques. While effective, this approach is limited to 2D level flight at fixed velocity, does not approach the infinite state space of continuous flight\cite{bertram3d}, and did not scale to multi-agent teams. These limitations motivate a different approach for multi-agent pursuit-evasion in a continuous 3D environment.
+Determining optimal strategies in real-time or close-to real time is computationally challenging as the problem grows in dimensionality --- the state-action space becomes too large to represent with traditional methods\cite{bertsekas1996,powell2007}. This ‘curse of dimensionality’\cite{bellman1957} motivates a variety of approximation approaches. McGrew et al.\cite{mcgrew2010} demonstrated an approximate dynamic programming (ADP) approach to 1v1 air combat, involving a number of additional reward-shaping techniques. While effective, this approach is limited to 2D level flight at fixed velocity, does not approach the infinite state space of continuous flight\cite{bertram3d}, and did not scale to multi-agent teams. These limitations motivate a different approach for multi-agent pursuit-evasion in a continuous 3D environment.
 
 Bertram et al.\cite{bertram2d} proposed a novel algorithm to closely approximate the solution to a class of MDPs with sparse rewards which they term FastMDP. Instead of well-known value iteration or policy iteration methods\cite{bellman1957,sutton1998}, FastMDP reframes the MDP as a graph and computes the value function from individual reward sources, combining positive and negative peaks into a single surface. The algorithm has no dependency on the size of the state space, making it suitable for continuous spaces and real-time computation. This was initially demonstrated in a 2D UAV path planning context, showing scaling with the number of obstacles.
 
 Further works by Bertram and Wei\cite{bertram3d} expanded FastMDP to a fully continuous 3D state space, incorporating a pseudo-6DoF kinematic model of fixed-wing aircraft and driving pursuit-evasion behaviours. That work forms the basis for the simulation and decision-making framework developed in this project.
 
+
+
 \review{NECESSARY?}
-Paragraph/justification about moving forwards with the FastMDP influence in my implementation, but what were my differentiations? Primarily reward structure, performance analysis alternative behaviour extensions\
-Also could describe how my work specifialcly involves agents that are both pursuing and evading at the same time, instead of other examples like 1 pursuer and 1 evader
+Paragraph/justification about moving forwards with the FastMDP influence in my implementation, but what were my differentiations? Primarily reward structure, performance analysis alternative behaviour extensions.\
+Also could describe how my work specifialcly involves agents that are both pursuing and evading at the same time, instead of other examples like 1 pursuer and 1 evader.
+Don't wnat to end up just repeating the introduction Motivation section basically
 
 \section{Starting Point}
 \label{sec:2.2}
@@ -20,19 +23,19 @@ I had experience with building and applying Markov models in Python (in particul
 
 I did not have experience with pursuit-evasion problems or explicit kinematic models, but I had written Java code to simulate physical three-dimensional systems before with a focus on linear algebra and vector mathematics rather than aerodynamics.
 
-I was confident with the Python programming language and the tooling around it including virtual environments, the pip package manager and the pytest testing framework. I had real-world corporate experience in managing large Python projects, and was also comfortable working with the Git version control system and GitHub actions for development workflows.
+I was confident with the Python programming language and the tooling around it including virtual environments, the pip package manager and the pytest testing framework. I had real-world corporate experience in managing large Python projects, and was also comfortable working with the Git version control system and GitHub Actions for development workflows.
 
-The final implementations are not based on existing codebases or machine learning libraries, but I identified similar projects from related work and examined their algorithms and pseudocode to influence my work.
+The final project is not based on existing codebases or machine learning libraries, but I examined the algorithms and pseudocode of the works described in \Cref{sec:2.1} to influence my implementations.
 
 \section{Theory and Design}
 \label{sec:2.3}
-I prepared for implementation by researching and understanding two substantial bodies of theory: Markov Decision Processes and approximation solution methods, and models of 3D kinematics. 
+I prepared for implementation by researching and understanding two substantial bodies of theory: Markov Decision Processes and their approximation solution methods, and models of 3D kinematics. 
 
 
 \subsection{Markov Decision Processes}
 \label{sec:2.3.1}
 
-A Markov Decision Process (MDP) is a mathematical framework for sequential decision-making under uncertainty. An MDP is formed of a tuple $(S, A, T, R)$ of states $S$, actions $A$, transition function $T : S \times A \times S \to [0,1]$ between states, and reward function $R : S \times A \to \mathbb{R}$ encoding desired behaviour. A policy is a mapping $\pi : S \to A$ with a value function $V^\pi : S \to \mathbb{R}$ encoding the expected reward from following that policy (with some discount factor $\gamma$ per transition), and the optimal policy $\pi^*$ is the one that maximises $V^{\pi^*}$ for all $s \in S$. Solving an MDP typically involves finding an optimal policy that covers all states.
+A Markov Decision Process (MDP) is a mathematical framework for sequential decision-making under uncertainty. An MDP is a tuple $(S, A, T, R)$ of states $S$, actions $A$, transition probability function $T : S \times A \times S \to [0,1]$, and reward function $R : S \times A \to \mathbb{R}$ that encodes desired behaviour. A policy is a mapping $\pi : S \to A$ with a value function $V^\pi : S \to \mathbb{R}$ encoding the expected reward from following that policy (with some discount factor $\gamma$ per transition), and the optimal policy $\pi^*$ is the one that maximises $V^{\pi^*}$ for all $s \in S$. Solving an MDP typically involves finding an optimal policy that covers all states.
 
 A Bellman optimality equation can exactly represent the  optimal value function\cite{bellman1957}.
 
@@ -41,20 +44,20 @@ V^{\pi^*}(s) = \max_{a \in A} \left[ R(s,a) + \gamma \sum_{s' \in S} T(s, a, s')
 \label{eq:value_bellman}
 \end{equation}
 
-Intuitively, the best value of an optimal-policy state must equal the expected return of the best action\cite{sutton1998}. This value-iteration approach is a standard method for exact solutions, but as discussed becomes intractable for large state spaces and undefined for infinite ones. A key observation for some approximation approaches is to identify a class of MDPs with \textit{sparse rewards}. In a sparse-reward MDP, most states have reward $R(s, a) = 0$, and there may be reward peaks and wells localised around certain regions of states. In this situation, the transition function $T$ and full reward function $R$ do not need explicit construction - the value function can be approximated directly from the reward sources and bypass standard iteration techniques.
+Intuitively, the best value of an optimal-policy state must equal the expected return of the best action\cite{sutton1998}. A standard method to determine the exact solution to an MDP is value iteration, which iteratively applies the optimality equation until convergence, but as discussed becomes intractable for large state spaces and inapplicable for infinite ones. A key observation for some approximation approaches is to identify a class of MDPs with \textit{sparse rewards}. In a sparse-reward MDP, most states have reward $R(s, a) = 0$, and there may be reward peaks and wells localised around certain regions of states. In this situation, the transition function $T$ and full reward function $R$ do not need explicit construction --- the value function can be approximated directly from the reward sources, bypassing standard iteration techniques.
 
 \subsection{\texttt{FastMDP} Algorithm}
 \label{sec:2.3.2}
 
-The FastMDP algorithm exploits this by constructing the value function from positive peaks and negative wells in a continuous state space. A measure of distance $\delta : S \times S \to \mathbb{R}$ must be defined for the state space to interpret the effect of each peak. For a continuous 3D environment this can be Euclidean distance. 
+The FastMDP algorithm exploits sparse rewards by constructing the value function from positive peaks and negative wells in a continuous state space. A measure of distance $\delta : S \times S \to \mathbb{R}$ must be defined for the state space to interpret the effect of each peak. For a continuous 3D environment this can be Euclidean distance. 
 
-Each positive reward places an exponentially decaying peak, and the positive value function is defined as the $\max$ over all peaks for some state $s$.
+Each positive reward places an exponentially decaying peak, and the positive value function is defined as the $\max$ over all peaks for some state $s$:
 
 \begin{equation}
     V^+(s) = \max_{i \in R^+} \left[ r_i \cdot \gamma_i^{\delta(s, s_i)} \right]
 \end{equation}
 
-where $R^+$ are the positive peaks, $r_i$ is the reward magnitude, $\gamma_i \in (0,1)$ is the per-source decay factor, and $\delta(s, s_i)$ is the distance measure. The negative value function is defined similarly, but negative rewards (`risk wells') are first converted into \textit{standard positive form} in order to calculate the value function identically to positive rewards before negating again.
+where $R^+$ are the positive peaks, $r_i$ is the reward magnitude, $\gamma_i \in (0,1)$ is the per-source decay factor, and $\delta(s, s_i)$ is the distance measure. The negative value function is defined similarly, but negative rewards (``risk wells'') are first converted into \textit{standard positive form} in order to calculate the value function identically to positive rewards before negating again.
 
 \begin{equation}
 V^-(s) = -\max_{j \in R^-} \left[ |r_j| \cdot \gamma_j^{\delta(s, s_j)} \right]
@@ -73,17 +76,17 @@ V(s) = V^+(s) + V^-(s) \approx V^{\pi^*}
 \label{sec:2.3.3}
 \texttt{FastMDP} has no reliance on the size of the state space, making it well-suited to the continuous 3D environment of pursuit-evasion. At each timestep, each agent formulates its own MDP with reward sources based on its opponents and their kinematic properties. It is the parameters of these reward sources (position, magnitude, decay) that drive the agent behaviour to capture enemies and avoid being captured.
 
-One of the project success criteria was to design novel reward functions that drive this behaviour. Bertram et al. place rewards solely based on agent position - opponents have positive peaks at their current and negative wells at projected positions, attracting pursuers and repelling collisions. I wanted to expand on this by considering velocity, heading and alignment parameters to inform reward sources. Two agents at equal distances from a target would have different tactical advantages depending on their alignment towards the target, and if their opponent is relatively aligned towards them.
+One of the project success criteria was to design novel reward functions that drive this behaviour. Bertram et al.\ place rewards solely based on agent position --- opponents have positive peaks at their current positions and negative wells at projected positions, attracting pursuers and repelling collisions. I wanted to expand on this by considering velocity, heading and alignment parameters to inform reward sources. Two agents at equal distances from a target would have different tactical advantages depending on their alignment towards the target, and if their opponent is relatively aligned towards them.
 
-This motivates incorporating \textit{velocity direction} into the reward structure. In addition to position, my MDP formulation would provide each agent with access to additional state for all opponents:
+This motivates incorporating \textit{velocity direction} into the reward structure. In addition to positions, my MDP formulation would provide each agent with access to additional state for all opponents:
 \begin{enumerate}[nosep]
-    \item The unit displacement vector $\hat{r}_{pe}$ from pursuer (self) to evader (enemy).
+    \item The unit displacement vector $\hat{r}_{pe}$ from self to enemy.
     \item The self velocity vector $v_{self}$.
     \item The enemy velocity vector $v_{enemy}$.
     \item The scalar distance $d$.
 \end{enumerate}
   
-Alignment measures and velocity headings can be derived from these quantities and used to inform the rewards. The specific reward functions built from these quantities and the parameter tuning process used to refine them, are described in the Implementation chapter.
+Alignment measures and speed values can be derived from these quantities and used to inform the rewards. The specific reward functions built from these quantities and the parameter analysis used to refine them are described in the Implementation chapter.
 
 \subsection{Kinematics}
 \label{sec:2.3.4}
@@ -92,10 +95,13 @@ The kinematic model follows the work of previous implementations\cite{bertram3d,
 
 An aircraft is modelled by a position $(x, y, z)$ with altitude $h = z$, azimuth heading angle $\psi$, attack angle $\alpha$, roll angle $\phi$, flight path angle $\gamma$, and airspeed $V$. Position is measured in metres, speed in metres/second and all angular quantities in radians. The control inputs to an aircraft are the acceleration derived from thrust $n_x$, attack angle rate of change $\dot{\alpha}$, and roll angle rate of change $\dot{\phi}$. These inputs provide a reasonable approximation of throttle and joystick controls in a highly manoeuvrable aircraft.
 
-The equations of motion are implemented directly from Bertram and Wei\cite{bertram3d} with two additions: kinematic bounds were applied per-agent rather than per-team and a numerical guard prevents division-by-zero of velocity in the azimuth angle calculation.
+The equations of motion are implemented directly from Bertram and Wei\cite{bertram3d} with a few additions. Available normal force $n_f$ is modelled as speed-dependent, reflecting that a fixed-wing aircraft cannot sustain high G-loads at low airspeed, with induced drag approximated as proportional to $n_f^2$ to reduce speed during hard turns. Kinematic bounds were applied per-agent rather than per-team, and a numerical guard prevents division-by-zero in the azimuth angle calculation.
 
 \begin{equation}
-    \dot{V} = g[n_x \cos\alpha - \sin\gamma]
+    n_f = \alpha \cdot \min\left(G_{max},\ G_{max} \cdot \left(\frac{V}{V_c}\right)^2\right)
+\end{equation}
+\begin{equation}
+    \dot{V} = g[n_x - k_d n_f^2 - \sin\gamma]
 \end{equation}
 \begin{equation}
     \dot{\gamma} = \frac{g}{V}[n_f \cos\phi - \cos\gamma]
@@ -104,25 +110,37 @@ The equations of motion are implemented directly from Bertram and Wei\cite{bertr
     \dot{\psi} = \frac{g \cdot n_f \sin\phi}{V \cos\gamma}
 \end{equation}
 
-where $n_f = n_x \sin\alpha + L n_f $is the normal force with lift constant $L=0.5$ and $g = 9.80665$ m/s$^2$.
-The bounds were determined during implementation and enforced through clipping functions. A hard deck was implemented at $z=0$, but this was enforced as a decision penalty rather than a kinematic limit.
+where $G_{max}$ is the structural G limit, $V_c$ is the corner velocity, $k_d$ is a drag coefficient, and $g = 9.80665$ m/s$^2$. The bounds were determined during implementation and enforced through clipping functions. A hard deck was implemented at $z=0$, but this was enforced as a decision penalty rather than a kinematic limit.
 
-A pseudo-6DoF model was appropriate for the project as the aim was to examine pursuit-evasion decision-behaviour with a kinematic model of reasonable fidelty. The aerodynamic force calculations of a full-6DoF that map surface deflections to drag, lift and lateral forces were not necessary for the purpose. 
+A pseudo-6DoF model was appropriate for the project as the aim was to examine pursuit-evasion decision behaviour with a kinematic model of reasonable fidelity. The aerodynamic force calculations of a full-6DoF that map surface deflections to drag, lift and lateral forces were not necessary.
+
+\subsection{Capturing}
+\label{sec:2.3.5}
+
+A capturing mechanic was required to define when one agent successfully intercepts another agent without being intercepted first. Without a well-defined condition, the pursuit-evasion problem has no clear resolution --- agents could approach indefinitely without a meaningful outcome.
+
+The initial design followed Bertram and Wei\cite{bertram3d}, and maintained a \textit{control point} for each agent that was the position the agent was in some number of timesteps ago. Capture was triggered when a pursuing agent came within a certain radius of this control point whilst sufficiently aligned towards the evader, and held this condition for a configurable number of timesteps. The intuition is that a pursuer positioned closely behind an evader and pointing towards them is in a tactically dominant position --- analogous to a `weapons lock' in air combat. This formulation was straightforward to implement and directly comparable to the existing work, and the one I was prepared to implement before beginning the project.
+
+However, this design did not account for the relative orientations of the two agents beyond the pursuer's alignment. For example, two agents at equal distances and headings towards a target would be treated identically regardless of whether the target was aligned back towards them --- a tactically significant distinction. A better capture condition would incorporate this asymmetry, ensuring that capture was only possible when an agent had a meaningful advantage over its opponent.
+
+During implementation the initial design was found to not produce realistic capture behaviour when examined qualitatively in the visualisation, prompting the redesign of the criteria to include further alignment checks. The final capturing conditions and their implementation are described in the Implementation chapter.
 
 \subsection{Codebase Architecture}
-\label{sec:2.3.5}
+\label{sec:2.3.6}
 I laid out a high-level architecture for the codebase that matched with the MDP and kinematic frameworks investigated above. This had a clear separation of concerns: the simulation could be run independently; the MDP constructor took only the initial parameters required to solve it; and outputs could easily be generated from simulation state at each timestep.
-The initial design was object-oriented - a central  manager constructed simulation instances that maintained lists of agents. Each agent constructed a single MDP for the entire simulation run that they updated with new values at each timestep. 
+The initial design was object-oriented --- a central  manager constructed simulation instances that maintained lists of agents. Each agent constructed a single MDP for the entire simulation run that they updated with new values at each timestep. 
 
-\review{figure here? i think I have some really old sketches on my ipad but they're very sloppy/incomplete? i could try and clean them up and try to make them actually demonstrate some of the original architecture but they would very much be filled-in (and i dont remember a lot of the original...)}
+\review{figure here? i think I have some really old sketches on my ipad but they're very sloppy/incomplete? i could try and clean them up and try to make them actually demonstrate some of the original planned architecture but they would very much be filled-in (and i dont remember a lot of the original...)}
 
 Early on in development this changed so that agents were constructing new MDP instances at each timestep, as there was minimal performance overhead and this better represented the dataflow of the program. The Implementation chapter further describes how the design eventually moved away from pure OOP in order to take advantage of various performance optimisations that did not interface well with Python objects. 
+
+\review{possibly more detail needed here? i didn't lean in too hard to planning out every piece of architecture as it was pretty straightforward - 3 modules connected, initially OOP design patterns as described. is there anything else I could/should add?}
 
 Python had a broad ecosystem that supported all areas of the project. NumPy provided efficient numerical compute, and a variety of libraries helped with static, dynamic, and interactive visualisations. Beyond library availability, its dynamic typing and interpreted nature allowed for more rapid prototyping whilst exploiting Numba's JIT functionality to ensure performance-heavy functions could be compiled to optimised machine code.
 
 \section{Requirements Analysis}
 \label{sec:2.4}
-Before beginning the project I performed a requirements analysis using the \textit{MoSCoW} system. The \textit{Must} requirements map directly onto the (non-extension) success criteria defined in the Introduction chapter.
+Before beginning the project, I performed a requirements analysis using the \textit{MoSCoW} system. The \textit{Must} requirements map directly onto the (non-extension) success criteria defined in the Introduction chapter.
 
 \begin{table}[H]
 \centering
@@ -143,7 +161,7 @@ Scale to multi-agent teams beyond 1v1 & \colorbox{couldorange}{\texttt{Could}} \
 JIT compilation via \texttt{numba} for performance gains & \colorbox{couldorange}{\texttt{Could}} \\
 Demonstrate framework applicability to alternative problem spaces & \colorbox{couldorange}{\texttt{Could}} \\
 \midrule
-Additionally accurate kinematic modelling beyond pseudo-6DoF & \colorbox{wontred}{\texttt{Won't}} \\
+Full aerodynamic modelling with surface deflections and force calculations & \colorbox{wontred}{\texttt{Won't}} \\
 Real-world hardware deployment & \colorbox{wontred}{\texttt{Won't}} \\
 \end{tabular}
 \caption{MoSCoW requirements analysis}
@@ -158,6 +176,6 @@ Git was set up for version control throughout development, with source code, ass
 
 An agile approach to software development was adopted throughout the project. The milestones from the project proposal were used as starting points for implementation sprints, with a short written review after each 2-3 week sprint. These reviews are included in Appendix A. This approach allowed flexibility throughout the academic year as other in-term commitments and vacations affected the development schedule, which is also reflected in the commit frequency of the repository.
 
-Unit tests were generated for individual modules using the \texttt{pytest} framework and produced alongside each implementation. A GitHub Actions workflow was configured to run the full test suite on every remote commit, with results and coverage reports saved as build artefacts. This provided a record of test outcomes throughout development to be referenced in the Evaluation chapter. However maintaining high test coverage proved to be challenging during heavy refactoring of the central implementations and limited the effectiveness of the suite. This is discussed further in the Implementation and Evaluation chapters.
+Unit tests were generated for individual modules using the \texttt{pytest} framework and produced alongside each implementation. A GitHub Actions workflow was configured to run the full test suite on every remote commit, with results and coverage reports saved as build artefacts. This provided a record of test outcomes throughout development to be referenced in the Evaluation chapter. However, maintaining high test coverage proved to be challenging during heavy refactoring of the central implementations and limited the effectiveness of the suite. This is discussed further in the Implementation and Evaluation chapters.
 
-Generative AI tooling was used in two clearly delineated capacities. Firstly, it was used to generate the unit tests from the existing implementations, coming up with realistic and edge-case values for the simulation and kinematic components. Secondly, it was used to produce boilerplate code for the output and visualisation modules with the Matplotlib library. All simulation, MDP, and kinematic code was written independently. No AI-generated code was included in the main algorithmic implementations, but separate chat windows were used throughout development to aid with documentation searching and reinforcing theoretical knowledge.
+Generative AI tooling was used in two clearly delineated capacities. Firstly, it was used to generate the unit tests from the existing implementations, creating realistic and edge-case test values for the simulation and kinematic components. Secondly, it was used to produce boilerplate code for the output and visualisation modules with the Matplotlib library --- for example axis ticks, coloured legends and subgraph layouts. All simulation, MDP, and kinematic code was written independently. No AI-generated code was included in the main algorithmic implementations, but separate chat windows were used throughout development to aid with documentation searching and reinforcing theoretical knowledge.

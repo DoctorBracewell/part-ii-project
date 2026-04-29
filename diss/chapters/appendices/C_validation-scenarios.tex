@@ -1,11 +1,21 @@
 \label{sec:C}
 
-| Scenario | Initial Separation | Relative Heading | Velocity Ratio (P:E) | Altitude |
-|---|---|---|---|---|
-| 1 | Far (~4000m) | Head-on | Equal (0.2 vs 0.2 Mach) | Mid (5000m) |
-| 2 | Close (~500m) | Head-on | Equal (0.2 vs 0.2 Mach) | Mid (5000m) |
-| 3 | Mid (~2000m) | Facing away | Equal (0.2 vs 0.2 Mach) | Mid (5000m) |
-| 4 | Mid (~2000m) | Perpendicular | Equal (0.2 vs 0.2 Mach) | Mid (5000m) |
-| 5 | Mid (~2000m) | Head-on | Pursuer faster (0.3 vs 0.15 Mach) | Mid (5000m) |
-| 6 | Mid (~2000m) | Head-on | Pursuer slower (0.15 vs 0.3 Mach) | Mid (5000m) |
-| 7 | Mid (~2000m) | Head-on | Equal (0.2 vs 0.2 Mach) | Low (15m) |
+The following scenarios were used for functional evaluation in \cref{sec:4.1}.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{c@{\hspace{0.3cm}}p{0.18\textwidth}@{\hspace{0.6cm}}p{0.15\textwidth}@{\hspace{0.6cm}}p{0.25\textwidth}@{\hspace{0.6cm}}p{0.2\textwidth}}
+\textbf{ID} & \textbf{Separation} & \textbf{Heading} & \textbf{Velocity Ratio} & \textbf{Altitude} \\
+\midrule
+1 & Close ($\sim$500m)   & Head-on       & Equal (0.2 vs 0.2 Mach)          & Mid (5000m) \\
+2 & Distant ($\sim$20km) & Head-on       & Equal (0.2 vs 0.2 Mach)          & Mid (5000m) \\
+3 & Mid ($\sim$2000m)    & Facing away   & Equal (0.2 vs 0.2 Mach)          & Mid (5000m) \\
+4 & Mid ($\sim$2000m)    & Perpendicular & Equal (0.2 vs 0.2 Mach)          & Mid (5000m) \\
+5 & Mid ($\sim$2000m)    & Head-on       & Asymmetric (0.3 vs 0.15 Mach)    & Mid (5000m) \\
+6 & Asymmetric           & $\sim$53\textdegree~off-axis & Asymmetric (0.26 vs 0.14 Mach) & Asymmetric (3740m vs 6290m) \\
+7 & Mid ($\sim$2000m)    & Head-on       & Equal (0.2 vs 0.2 Mach)          & Low (15m) \\
+\end{tabular}
+\caption{Validation scenario configurations.}
+\label{tab:scenarios}
+\end{table}

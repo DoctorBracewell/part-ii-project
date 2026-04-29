@@ -1,28 +1,35 @@
 \label{sec:5}
 
-Summary of Work
-I explored the fields of 
+\section{Summary of Work}
+\label{sec:5.1}
 
-I evaluated the project and extensions with a focus on 
+This project investigated, implemented and extended the FastMDP algorithm of Bertram and Wei\cite{bertram3d} in a three-dimensional kinematic simulation of fixed-wing aircraft, with a primary focus on pursuit-evasion behaviour. A pseudo-6DoF kinematic model was implemented incrementally from one to three dimensions, with functionality for parameter variation and limit adjustments. New alignment-based reward functions were designed and refined through one-at-a-time sensitivity analysis, and original capturing conditions were contributed to the problem space. The project was evaluated against defined kinematic and behavioural validity criteria, performance requirements and visualisation principles.
 
-I have also considered the social and ethical implications of the specific pursuit-evasion behaviour and wider problem space in <Social Impacts>.
+An output system of static plots, video outputs, a terminal dashboard and an interactive 3D visualisation was developed throughout to support analysis and evaluation. The project was extended with Numba JIT compilation for performance gains, multi-agent scaling beyond 1v1, and a demonstration that the decision-making framework generalises to alternative problem spaces including \todo{what spaces} 
 
-Lessons Learnt
-Lessons learnt:
-Knowledgebase Expanded - MDPs, 3D kinematics, optimisation techniques in Python.
-Developed ML-Based Thinking - being given parameters, and then defining my own reward functions to drive behaviour.
-Software Development Methodology - value of CI tooling, especially during heavy refactoring. Comprehensive testing and the pitfalls of it, 
-Understanding theory and mathematical models allows you to implement solutions . For MDPs specifically, understanding the structure allowed to make approximations (forward projection) of the optimal policy, and understand (prove?) why this is valid
+\section{Lessons Learnt}
+\label{sec:5.2}
 
-Starting over I would:
-Take a larger focus on test driven development instead of just comprehensive testing, and ensuring deep module functionality with simple interfaces.
-Possibly consider writing the code to take advantage of multicore and GPU applications for further optimisation
+The project expanded my knowledge across several areas. I learnt foundational MDP theory and approximate solution methods before implementing the FastMDP algorithm. Designing reward functions to drive behaviour developed analytical thinking --- examining quantitative and qualitative flight data helped me consider how to encode tactics into mathematical relationships, and using sensitivity analysis gave empirical justifications for the final result.  
 
+From a software engineering perspective, the value and limitations of my testing approach became apparent during periods of heavy refactoring. The progression from OOP to vectorised NumPy to Numba-compiled procedures had design issues that were not anticipated during preparation. Tests written against earlier interfaces were repeatedly invalidated, and the key lesson was that test-driven development with stable interfaces would have provided more value than the implementation-led approach taken.
 
+My evaluations helped me consider principles of information and visualisation design. The project provided an environment to explore how abstractly-implemented simulations can be concretely visualised and intuitively explored, especially with interactive elements for end users. 
 
-Future Work
-<to mostly write after I have finished the main implementation?>
+If I started the project again, I would place more emphasis on test-driven development and design module interfaces in-depth before their implementations. I could also consider multicore and GPU parallelism in the design process, as the action-space evaluation loop in FastMDP is highly parallelisable and could benefit from these approaches.
 
-<optimal experimental design?>
+\section{Contributions to the Field}
+\label{sec:5.3}
 
-The airflight simulation component can be separated from the pursuit-evasion problem space entirely and applied to different decision making processes. An example of this might be search-and-rescue, where we could redefine the state space of the MDP to track visited areas instead of opponent parameters and create rewards that drive movement towards unexplored locations. In this case the action space of the MDP is the same, but we could also utilise totally different decision processes such as neural networks.
+The project makes several contributions beyond reimplementing existing work. The capturing conditions that combine distance, nose alignment and asymmetry checks are an original contribution not present in Bertram and Wei\cite{bertram3d}, and provide a meaningful terminating condition for the simulation. The alignment-based reward functions extend position-based approaches by considering velocity geometry, and the one-at-a-time sensitivity analysis compared the relative importance of different kinematic parameters.
+
+The pseudo-6DoF simulation, with vectorised numerical computation and JIT-compilation with Numba, is a reusable component independent of the pursuit-evasion problem space. I demonstrated that the decision-making framework can also be generalised to other behaviours with changes only to the reward function, indicating applicability of the \texttt{FastMDP} algorithm outside of the pursuit-evasion space. \todo{what spaces} 
+
+There are ethical considerations around the problem space of autonomous air combat. Weapon systems that make engagement decisions without human input raise concerns about accountability and the barriers of entry to combat. The framework developed in the project exists in a simulated environment with no path to actual deployment, but further formation could contribute to research in this area and the implications should be acknowledged. As noted, applications to other spaces \todo{have these benefit...}
+
+\section{Future Work}
+\label{sec:5.4}
+
+Further refining could be performed on the reward functions to address some of the artefacts identified during evaluation. The distance-bouncing could be addressed by incorporating closure-rate terms or even increasing the forward projection horizon. The hard deck penalty did not prevent altitude violations in all cases and a harsher behavioural block may be required.
+
+Parallelising the action-space evaluation loop across CPU cores or GPU threads could present a significant performance improvement. To further improve the native gains from Numba, the core computation components of the project could be rewritten in a lower level language such as Rust and communicate back with the visualisation components through foreign function interfaces.

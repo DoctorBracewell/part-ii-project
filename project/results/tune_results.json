@@ -1,0 +1,230 @@
+[
+  {
+    "parameter": "base",
+    "value": -1,
+    "captures": [
+      [
+        1148,
+        0,
+        1
+      ]
+    ],
+    "steps": 1148
+  },
+  {
+    "parameter": "velocity_maxs",
+    "value": 114.33333333333333,
+    "captures": [
+      [
+        1464,
+        1,
+        0
+      ]
+    ],
+    "steps": 1464
+  },
+  {
+    "parameter": "velocity_maxs",
+    "value": 125.76666666666668,
+    "captures": [
+      [
+        1351,
+        1,
+        0
+      ]
+    ],
+    "steps": 1351
+  },
+  {
+    "parameter": "velocity_maxs",
+    "value": 137.20000000000002,
+    "captures": [
+      [
+        1157,
+        1,
+        0
+      ]
+    ],
+    "steps": 1157
+  },
+  {
+    "parameter": "azimuth_rate_mins",
+    "value": -1.9133333333333336,
+    "captures": [
+      [
+        1142,
+        0,
+        1
+      ]
+    ],
+    "steps": 1142
+  },
+  {
+    "parameter": "azimuth_rate_mins",
+    "value": -2.526666666666667,
+    "captures": [
+      [
+        1141,
+        0,
+        1
+      ]
+    ],
+    "steps": 1141
+  },
+  {
+    "parameter": "azimuth_rate_mins",
+    "value": -3.14,
+    "captures": [
+      [
+        1141,
+        0,
+        1
+      ]
+    ],
+    "steps": 1141
+  },
+  {
+    "parameter": "azimuth_rate_maxs",
+    "value": 1.9133333333333336,
+    "captures": [
+      [
+        1020,
+        0,
+        1
+      ]
+    ],
+    "steps": 1020
+  },
+  {
+    "parameter": "azimuth_rate_maxs",
+    "value": 2.526666666666667,
+    "captures": [
+      [
+        1021,
+        0,
+        1
+      ]
+    ],
+    "steps": 1021
+  },
+  {
+    "parameter": "azimuth_rate_maxs",
+    "value": 3.14,
+    "captures": [
+      [
+        1021,
+        0,
+        1
+      ]
+    ],
+    "steps": 1021
+  },
+  {
+    "parameter": "attack_angle_maxs",
+    "value": 0.8700000000000001,
+    "captures": [
+      [
+        591,
+        0,
+        1
+      ]
+    ],
+    "steps": 591
+  },
+  {
+    "parameter": "attack_angle_maxs",
+    "value": 1.2200000000000002,
+    "captures": [
+      [
+        278,
+        1,
+        0
+      ]
+    ],
+    "steps": 278
+  },
+  {
+    "parameter": "attack_angle_maxs",
+    "value": 1.57,
+    "captures": [
+      [
+        677,
+        0,
+        1
+      ]
+    ],
+    "steps": 677
+  },
+  {
+    "parameter": "thrust_ratio",
+    "value": 11.666666666666666,
+    "captures": [
+      [
+        3161,
+        0,
+        1
+      ]
+    ],
+    "steps": 3161
+  },
+  {
+    "parameter": "thrust_ratio",
+    "value": 13.333333333333334,
+    "captures": [
+      [
+        699,
+        0,
+        1
+      ]
+    ],
+    "steps": 699
+  },
+  {
+    "parameter": "thrust_ratio",
+    "value": 15.0,
+    "captures": [
+      [
+        682,
+        0,
+        1
+      ]
+    ],
+    "steps": 682
+  },
+  {
+    "parameter": "roll_angle_ratio",
+    "value": 1.1666666666666667,
+    "captures": [
+      [
+        700,
+        0,
+        1
+      ]
+    ],
+    "steps": 700
+  },
+  {
+    "parameter": "roll_angle_ratio",
+    "value": 1.3333333333333333,
+    "captures": [
+      [
+        1326,
+        0,
+        1
+      ]
+    ],
+    "steps": 1326
+  },
+  {
+    "parameter": "roll_angle_ratio",
+    "value": 1.5,
+    "captures": [
+      [
+        892,
+        0,
+        1
+      ]
+    ],
+    "steps": 892
+  }
+]
