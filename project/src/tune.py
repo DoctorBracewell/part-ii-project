@@ -1,110 +1,90 @@
-from simulation.simulation import SimulationManager, Simulation
+from simulation.simulation import SimulationManager
 from visualisation import VisualisationManager
 from configs import simulation as SimulationConfig
 from logging import Logger
 from numpy import linspace
-from itertools import product
 from rich.progress import Progress, TextColumn, BarColumn
+from pathlib import Path
+from typing import Any
 import copy
 import os
+import json
 from threading import Thread
 
 from configs.parameters import BASE as base
 
 M = SimulationConfig.MACH
 inputs: dict[str, tuple[float, float, int]] = {
-    "velocity_maxs": (0.3 * M, 0.4 * M, 2),
-    "azimuth_rate_mins": (-1.3, -1.5, 2),
-    "azimuth_rate_maxs": (1.3, 1.5, 2),
-    "attack_angle_maxs": (0.52, 0.69, 2),
-    "thrust_ratio": (10, 15, 3),
-    "roll_angle_ratio": (1, 1.5, 2),
+    "velocity_maxs": (0.3 * M, 0.4 * M, 4),
+    "azimuth_rate_mins": (-1.3, -3.14, 4),
+    "azimuth_rate_maxs": (1.3, 3.14, 4),
+    "attack_angle_maxs": (0.52, 1.57, 4),
+    "thrust_ratio": (10, 15, 4),
+    "roll_angle_ratio": (1, 1.5, 4),
 }
 
-parameters: dict[str, list[float] | list[list[float]]] = {
-    "velocity_maxs": [float(x) for x in linspace(*inputs["velocity_maxs"])],
-    "azimuth_rate_mins": [float(x) for x in linspace(*inputs["azimuth_rate_mins"])],
-    "azimuth_rate_maxs": [float(x) for x in linspace(*inputs["azimuth_rate_maxs"])],
-    "attack_angle_maxs": [float(x) for x in linspace(*inputs["attack_angle_maxs"])],
-    "thrust_ratio": [float(x) for x in linspace(*inputs["thrust_ratio"])],
-    "roll_angle_ratio": [float(x) for x in linspace(*inputs["roll_angle_ratio"])],
+parameters: dict[str, list[float]] = {
+    k: [float(x) for x in linspace(*v)] for k, v in inputs.items()
 }
+
+RESULTS_FILE = Path(__file__).parent.parent / "results" / "tune_results.json"
 
 
 def tune(logger: Logger):
     simulation_manager = SimulationManager(logger)
     visulisation_manager = VisualisationManager(logger, 3)
-    results = []
+
+    results: list[dict[str, Any]] = json.loads(RESULTS_FILE.read_text()) if RESULTS_FILE.exists() else []
+    completed = {(r["parameter"], round(float(r["value"]), 8)) for r in results}
+
+    if results:
+        logger.info(f"Resuming: {len(results)} runs already complete.")
+
+    def save(parameter: str, value: float, captures: int, steps: int):
+        results.append({"parameter": parameter, "value": value, "captures": captures, "steps": steps})
+        RESULTS_FILE.write_text(json.dumps(results, indent=2))
 
     def run_simulation():
-        logger.info(f"Base parameters: {base}\n")
-        progress = Progress(
-            TextColumn("{task.description}"),
-            BarColumn(),
-            TextColumn("step {task.completed:.0f}/{task.total:.0f}"),
-        )
-        print()
-        progress.start()
-        task = progress.add_task("base", total=1000)
+        # --- 1. BASE RUN ---
+        if ("base", round(-1.0, 8)) not in completed:
+            logger.info(f"Base parameters: {base}\n")
+            progress = Progress(TextColumn("{task.description}"), BarColumn(), TextColumn("step {task.completed:.0f}/{task.total:.0f}"))
+            print()
+            progress.start()
+            task = progress.add_task("base", total=4000)
+            simulation_manager.setup(base)
+            steps, captures = simulation_manager.run(lambda _: progress.update(task, advance=1), visulisation_manager.update)
+            progress.stop()
+            save("base", -1, captures, steps)
+            logger.info(f"Captures {captures} by step {steps} (base)." if captures else f"No capture by step {steps} (base).")
 
-        def update(simulation: Simulation):
-            progress.update(task, advance=1)
+        # --- 2. PARAMETER SWEEP ---
+        for parameter, values in parameters.items():
+            for value in values[1:]:  # skip base value
+                if (parameter, round(value, 8)) in completed:
+                    continue
 
-        simulation_manager.setup(base)
-        steps, captures = simulation_manager.run(update, visulisation_manager.update)
+                test_parameters = copy.deepcopy(base)
+                test_parameters[parameter][-1] = value  # type: ignore
 
-        results.append(("base", -1, captures, steps))
-        progress.stop()
+                progress = Progress(TextColumn("{task.description}"), BarColumn(), TextColumn("step {task.completed:.0f}/{task.total:.0f}"))
+                print()
+                progress.start()
+                task = progress.add_task(f"{parameter}={value:.3f}", total=4000)
+                simulation_manager.setup(test_parameters)
+                steps, captures = simulation_manager.run(lambda _: progress.update(task, advance=1), visulisation_manager.update)
+                progress.stop()
+                save(parameter, value, captures, steps)
+                logger.info(f"Captures {captures} by step {steps} with {parameter}={value:.3f}." if captures else f"No capture by step {steps} with {parameter}={value:.3f}.")
 
-        if captures:
-            logger.info(
-                f"Captures {captures} by timestep {steps} with base parameters!"
-            )
-        else:
-            logger.info(f"No capture by timestep {steps} with base parameters.")
+        logger.info(f"Tuning complete. Results saved to {RESULTS_FILE}")
 
-    sim_thread = Thread(target=run_simulation, daemon=True)
-    sim_thread.start()
+    Thread(target=run_simulation, daemon=True).start()
 
     from PyQt5.QtWidgets import QApplication
-
     app = QApplication([])
     app.exec_()
     os._exit(0)
-
-    for parameter, values in parameters.items():
-        for value in values[1:]:  # skip the first value since it's the base
-            test_parameters = copy.deepcopy(base)
-            test_parameters[parameter][-1] = value  # type: ignore
-
-            progress = Progress(
-                TextColumn("{task.description}"),
-                BarColumn(),
-                TextColumn("step {task.completed:.0f}/{task.total:.0f}"),
-            )
-            print()
-            progress.start()
-            task = progress.add_task(f"{parameter}={value:.1f}", total=1000)
-
-            def update(simulation: Simulation):
-                progress.update(task, advance=1)
-
-            simulation_manager.setup(test_parameters)
-            steps, captures = simulation_manager.run(update)
-
-            results.append((parameter, value, captures, steps))
-            progress.stop()
-
-            if captures:
-                logger.info(
-                    f"Captures {captures} by timestep {steps} with {parameter}={value:.1f}!"
-                )
-            else:
-                logger.info(
-                    f"No capture by timestep {steps} with {parameter}={value:.1f}."
-                )
-
-    logger.info(f"\nTuning results: {results}")
 
 
 if __name__ == "__main__":
@@ -112,15 +92,8 @@ if __name__ == "__main__":
     from rich.logging import RichHandler
     from rich.console import Console
 
-    console = Console()
     logging.basicConfig(
-        level="INFO",
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[
-            RichHandler(
-                console=console, show_time=True, show_level=True, show_path=True
-            )
-        ],
+        level="INFO", format="%(message)s", datefmt="[%X]",
+        handlers=[RichHandler(console=Console(), show_time=True, show_level=True, show_path=True)],
     )
     tune(logging.getLogger("rich"))

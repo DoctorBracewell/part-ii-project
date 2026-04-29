@@ -61,11 +61,22 @@ def step_agents(
     )
     roll_angles = roll_angles + roll_angle_rates * dt
 
-    nf = thrusts * np.sin(attack_angles) + SimulationConfig.L
-
-    velocities_rates = g * (
-        thrusts * np.cos(attack_angles) - np.sin(flight_path_angles)
+    # Change 1: Calculate how many 'Gs' the plane can actually pull at this speed
+    # (This stops the "infinite turn" bug at low speeds)
+    v_ratio = velocities / SimulationConfig.CORNER_VELOCITY
+    max_g_at_speed = np.minimum(
+        SimulationConfig.MAX_GS, SimulationConfig.MAX_GS * (v_ratio**2)
     )
+
+    # Change 2: Redefine nf as the actual G-load being pulled
+    # Your 'attack_angles' now acts as a 0.0 to 1.0 multiplier for those Gs
+    nf = attack_angles * max_g_at_speed
+
+    # Change 3: Update velocity rate to include "Turn Drag" (Induced Drag)
+    # This makes the agent lose speed when it turns hard
+    turn_drag = SimulationConfig.K_DRAG * (nf**2)
+    velocities_rates = g * (thrusts - turn_drag - np.sin(flight_path_angles))
+
     velocities = np.clip(
         velocities + velocities_rates * dt,
         velocity_mins,
@@ -77,8 +88,8 @@ def step_agents(
     )
     flight_path_angles = np.clip(
         flight_path_angles + flight_path_angles_rates * dt,
-        -np.pi / 2 + 1e-3,
-        np.pi / 2 - 1e-3,
+        -1.4,
+        1.4,
     )
 
     azimuth_angles_rates = np.clip(
@@ -170,6 +181,7 @@ class Simulation:
         self,
         N: int,
         positions: list[list[float]],
+        headings: list[float],
         velocity_mins: list[float],
         velocity_maxs: list[float],
         azimuth_rate_mins: list[float],
@@ -201,10 +213,7 @@ class Simulation:
         self.flight_path_angles: Scalars = np.zeros(N, dtype=np.float64)
         self.roll_angles: Scalars = np.zeros(N, dtype=np.float64)
         # self.roll_angles: Scalars = np.array([np.pi / 2, -np.pi / 2])
-        self.azimuth_angles: Scalars = np.zeros(N, dtype=np.float64)
-        # self.azimuth_angles: Scalars = np.array(
-        #     [np.pi / 2, -np.pi / 2], dtype=np.float64
-        # )
+        self.azimuth_angles: Scalars = np.array(headings, dtype=np.float64)
         # agent inputs
         self.thrusts: Scalars = np.zeros(N, dtype=np.float64)
         self.attack_angle_rates: Scalars = np.zeros(N, dtype=np.float64)

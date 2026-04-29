@@ -176,28 +176,23 @@ def positive_maximum(
 
 
 def negative_maximum(
-    self_position: Vector,
-    other_positions: Vectors,
-    other_velocities: Vectors,
+    self_position: np.ndarray,
+    other_positions: np.ndarray,
+    other_velocities: np.ndarray,
 ) -> float:
     r = other_positions - self_position
     d = np.linalg.norm(r, axis=1)
     r_hat = r / d[:, np.newaxis]
 
-    # Enemy pointing toward us
     enemy_v_hat = (
         other_velocities / np.linalg.norm(other_velocities, axis=1)[:, np.newaxis]
     )
-    enemy_pursuit_alignment = -np.sum(
-        r_hat * enemy_v_hat, axis=1
-    )  # high when enemy points at self
 
-    # Enemy is in our front hemisphere (we are in front of them)
-    r_from_enemy = -r_hat  # vector from enemy to self
-    aspect_alignment = -np.sum(
-        r_from_enemy * enemy_v_hat, axis=1
-    )  # high when we're in their front
+    # Calculate alignment
+    alignment = np.sum(-r_hat * enemy_v_hat, axis=1)
 
-    score = (enemy_pursuit_alignment + aspect_alignment) / d
+    # CLAMP: Only penalize if the enemy is actually pointing towards us (alignment > 0).
+    # If they are perpendicular or pointing away, the threat is 0.
+    threat_score = np.maximum(0, alignment) / d
 
-    return np.max(score)
+    return np.max(threat_score)
